@@ -1,81 +1,89 @@
 import numpy as np
 
-def f1(gene_given, gene_original):
-    """
-    first fitness function
-    if both genes were the same, then fitness is 1 else 0
+class integer_fitness():
 
-    Parameters:
-    -------------
-    gene_given : string
-        a string of zeros and ones representing chromosomes of the given gene
-    gene_original : string
-        a string of zeros and ones representing chromosomes of the original gene
+    def __init__(self, gene_original) -> None:
+        """
+        Parameters:
+        -------------
+        gene_original : string
+            a string of zeros and ones representing chromosomes of the original gene
+        """
+        self.gene_original = gene_original
+        self.gene_original_chromosomes = list(self.gene_original) 
 
-    Output:
-    --------
-    fitness : int
-        the fitness of the given gene w.r.t. the original gene
-    """
-    fitness = None
-    
-    if gene_given == gene_original:
-        fitness = 1
-    else:
-        fitness = 0
-    
-    return fitness
 
-def f2(gene_given, gene_original):
-    """
-    second fitness function
-    character-wise comparison, count the same ones
+    def f1(self, gene_given) -> int:
+        """
+        first fitness function
+        if both genes were the same, then fitness is 1 else 0
 
-    Parameters:
-    -------------
-    gene_given : string
-        a string of zeros and ones representing chromosomes of the given gene
-    gene_original : string
-        a string of zeros and ones representing chromosomes of the original gene
+        Parameters:
+        -------------
+        gene_given : string
+            a string of zeros and ones representing chromosomes of the given gene
 
-    Output:
-    --------
-    fitness : int
-        the fitness of the given gene w.r.t. the original gene
-    """
 
-    ## extract the characters
-    gene_given_chromosome = list(gene_given)
-    gene_original_chromosomes = list(gene_original) 
+        Output:
+        --------
+        fitness : int
+            the fitness of the given gene w.r.t. the original gene
+        """
+        fitness = None
+        
+        if gene_given == self.gene_original:
+            fitness = 1
+        else:
+            fitness = 0
+        
+        return fitness
 
-    fitness = sum( np.array(gene_given_chromosome) == gene_original_chromosomes )
+    def f2(self, gene_given) -> int:
+        """
+        second fitness function
+        character-wise comparison, count the same ones
 
-    return fitness
+        Parameters:
+        -------------
+        gene_given : string
+            a string of zeros and ones representing chromosomes of the given gene
 
-def f3(gene_given, gene_original):
-    """
-    third fitness function
-    negative absolute distance of chromosomes in gene 
+        Output:
+        --------
+        fitness : int
+            the fitness of the given gene w.r.t. the original gene
+        """
 
-    Parameters:
-    -------------
-    gene_given : string
-        a string of zeros and ones representing chromosomes of the given gene
-    gene_original : string
-        a string of zeros and ones representing chromosomes of the original gene
+        ## extract the characters
+        gene_given_chromosome = list(gene_given)
 
-    Output:
-    --------
-    fitness : int
-        the fitness of the given gene w.r.t. the original gene
-    """
+        fitness = sum( np.array(gene_given_chromosome) == self.gene_original_chromosomes )
 
-    ## extract the characters
-    gene_given_chromosome = list(gene_given)
-    gene_original_chromosomes = list(gene_original) 
+        return fitness
 
-    subtraction = np.array(gene_given_chromosome, dtype=int) - np.array(gene_original_chromosomes, dtype=int)
+    def f3(self, gene_given) -> int:
+        """
+        third fitness function
+        negative absolute distance of chromosomes in gene 
 
-    fitness = sum(abs(subtraction))
+        Parameters:
+        -------------
+        gene_given : string
+            a string of zeros and ones representing chromosomes of the given gene
+        gene_original : string
+            a string of zeros and ones representing chromosomes of the original gene
 
-    return fitness
+        Output:
+        --------
+        fitness : int
+            the fitness of the given gene w.r.t. the original gene
+        """
+
+        ## extract the characters
+        gene_given_chromosome = list(gene_given)
+
+        subtraction = np.array(gene_given_chromosome, dtype=int) - np.array(self.gene_original_chromosomes, dtype=int)
+
+        fitness = sum(abs(subtraction))
+
+        return fitness

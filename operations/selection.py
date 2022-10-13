@@ -1,9 +1,9 @@
-from numpy import random, where
+from numpy import random, where, array
 """
 Selection methods 
 """
 
-def roulette_wheel(population, selection_pop_size, pop_fitness, with_replacement = True) -> list:
+def roulette_wheel(population, pop_fitness, selection_pop_size=2, with_replacement = True) -> list:
     """
     roulette wheel (fitness proportionate) Method to select the new population
     
@@ -18,6 +18,7 @@ def roulette_wheel(population, selection_pop_size, pop_fitness, with_replacement
         each item of array indicates each gene fitness
     selction_pop_size : int
         specify how many genes to return
+        default is 2
     with_replacement : bool
         select genes from population with replacement or not
         default is True, meaning a gene can be chosen multiple times 
@@ -40,7 +41,7 @@ def roulette_wheel(population, selection_pop_size, pop_fitness, with_replacement
     return selected_population
 
 
-def binary_tournament(population, selection_pop_size, pop_fitness) -> list:
+def binary_tournament(population, pop_fitness,selection_pop_size=2) -> list:
     """
     binary tournament Method to select the new population
     
@@ -49,12 +50,13 @@ def binary_tournament(population, selection_pop_size, pop_fitness) -> list:
     population : array
         array of genes
         each gene corresponds to one person
+    selction_pop_size : int
+        specify how many genes to return
+        default is 2
     pop_fitness : array
         the fitness of population
         each item of array indicates each gene fitness
-    selction_pop_size : int
-        specify how many genes to return
-    
+
     Output:
     --------
     selected_population : array
@@ -69,8 +71,9 @@ def binary_tournament(population, selection_pop_size, pop_fitness) -> list:
         gene1, gene2 = random.choice(population, size=2)
         
         ## find the indexes in order to get the fitness from pop_fitness array
-        gene1_idx = where(population == gene1)
-        gene2_idx = where(population == gene2)
+        ## zeros are intended to get the first indexes
+        gene1_idx = where(array(population) == gene1)[0][0]
+        gene2_idx = where(array(population) == gene2)[0][0]
 
         # evaluate which has a better fitness
         if pop_fitness[gene1_idx] > pop_fitness[gene2_idx]:

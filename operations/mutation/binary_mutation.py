@@ -2,10 +2,11 @@
 Mutation method for binary genes
 """
 
-from random import random
+# from random import random
+from numpy.random import randint
 
 
-def bit_flipping(string_gene, p_m):
+def bit_flipping(string_gene):
     """
     bit flipping mutation method for a binary gene
 
@@ -15,8 +16,6 @@ def bit_flipping(string_gene, p_m):
     ------------
     string_gene : string
         a string of zeros and ones representing chromosomes of the gene
-    p_m : float between zero an one
-        the probability of bit flipping mutation
 
     Outputs:
     ---------
@@ -26,17 +25,10 @@ def bit_flipping(string_gene, p_m):
     ## initialize empty gene
     mutated_gene = ''
 
-    for chromosome in string_gene:
-        ## generate a random value to see if we want to mutate or not
-        mutation_value = random()
-        
-        ## if True, then we can mutate
-        mutation_state = mutation_value < p_m
+    ## randomly select a gene in chromosome to be flipped
+    chromosome_idx = randint(0, len(string_gene))
 
-        not_chromosome = '0' if chromosome == '1' else '1'
-
-        ## add to the new gene
-        mutated_gene += not_chromosome if mutation_state else chromosome
+    not_chromosome = '0' if string_gene[chromosome_idx] == '1' else '1'
     
     return mutated_gene
 

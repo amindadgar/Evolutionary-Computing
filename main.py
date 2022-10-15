@@ -26,10 +26,6 @@ end_condition = False
 
 while  not end_condition:
 
-    ## to have less I/O
-    if generation_count % 10 == 0:
-        print(f'Generation {generation_count} is in progress . . .')
-
     ## Step 4 & 5 
     ## Parents pool is created and randomly they are paired
 
@@ -112,11 +108,18 @@ while  not end_condition:
     best_of_generation_population = generation_population_sorted[-200:]
     best_of_generation_fitness = generation_fitness_sorted[-200:]
     
+    ## increase the generation value
+    generation_count += 1
+    
     ## generation fitness statistics save
     generation_fitness_save(best_of_generation_fitness, generation_count)
     
-    ## increase the generation value
-    generation_count += 1
 
     ## condition checks
-    end_condition = (max(best_of_generation_fitness) == BEST_FITNESS_VALUE) or (generation_count == MAX_GENERATION_COUNT)
+    convergence_condition = max(best_of_generation_fitness) == BEST_FITNESS_VALUE
+    end_condition = convergence_condition or (generation_count == MAX_GENERATION_COUNT)
+
+    if convergence_condition:
+        print(f"Algorithm converged in {generation_count} generations!")
+    elif end_condition:
+        print(f"Algorithm did not converged and ended in selected max generation count {generation_count}!")

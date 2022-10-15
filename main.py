@@ -1,6 +1,5 @@
-import numpy as np
 from __init__ import *
-from file_saving import generation_fitness_save
+
 
 #########################################
 ################# Start #################
@@ -24,8 +23,12 @@ for _ in range(POP_SIZE):
 ########### Step 3 ###########
 generation_count = 0
 end_condition = False
-while  ~end_condition:
-    print(f'Generation {generation_count} is in progress . . .')
+
+while  not end_condition:
+
+    ## to have less I/O
+    if generation_count % 10 == 0:
+        print(f'Generation {generation_count} is in progress . . .')
 
     ## Step 4 & 5 
     ## Parents pool is created and randomly they are paired
@@ -108,14 +111,12 @@ while  ~end_condition:
 
     best_of_generation_population = generation_population_sorted[-200:]
     best_of_generation_fitness = generation_fitness_sorted[-200:]
-    ## increase the generation value
-    generation_count += 1
+    
     ## generation fitness statistics save
     generation_fitness_save(best_of_generation_fitness, generation_count)
+    
+    ## increase the generation value
+    generation_count += 1
 
     ## condition checks
     end_condition = (max(best_of_generation_fitness) == BEST_FITNESS_VALUE) or (generation_count == MAX_GENERATION_COUNT)
-
-    ### TODO: end Condition is not being satisfied!
-    print((generation_count == MAX_GENERATION_COUNT))
-    

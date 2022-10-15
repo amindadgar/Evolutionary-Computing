@@ -16,4 +16,7 @@ from algorithm_config import (PROBLEM_SIZE,
                                 MAX_GENERATION_COUNT,
                                 T)
 from algorithm_config import BEST_FITNESS_FOUR_PEAKS as BEST_FITNESS_VALUE
+from file_saving import generation_fitness_save
+import numpy as np
+
 

@@ -8,7 +8,8 @@ from algorithm_config import SAVING_STATISTICS_INTERVAL, RESULTS_FILE_NAME, MAX_
 ## save the generation fitnesses and when SAVING_STATISTICS_INTERVAL comes, flush it all into a file
 GENERATION_FITNESS_STATS_ARR = []
 
-def generation_fitness_save(population_fitness, generation_number) -> None:
+
+def generation_fitness_save(population_fitness, generation_number, end_condition, file_name) -> None:
     """
     Save the generation fitness values into memory and if the generation number comes to the condition of saving the file, then save the results into disk
     """
@@ -16,27 +17,27 @@ def generation_fitness_save(population_fitness, generation_number) -> None:
     ## writing file headers for the first time
     ## generation count in this file will be start from 1 for better understandibility
     if generation_number == 1:
-        write_file_headers()
+        write_file_headers(file_name)
         
     ## save cache
     cache_fitness_statistics(population_fitness, generation_number)
 
     ## and also if the time comes, save them all in a file and empty the cached array
     if generation_number % SAVING_STATISTICS_INTERVAL == 0:
-        do_file_operations()
+        do_file_operations(file_name)
     
-    ## if the last generation comes and there was still something not saved, save them all
-    elif generation_number == MAX_GENERATION_COUNT:
-        do_file_operations()
+    ## if the the algorithm was ending, and if there was still something not saved, save them all
+    elif end_condition:
+        do_file_operations(file_name)
 
-def do_file_operations():
+def do_file_operations(file_name):
     """
     save the array of data into a file
     """
     ## tell the interpreter we are using the global variable
     global GENERATION_FITNESS_STATS_ARR
 
-    save_fitness_stats_into_disk(GENERATION_FITNESS_STATS_ARR)
+    save_fitness_stats_into_disk(GENERATION_FITNESS_STATS_ARR, file_name)
     GENERATION_FITNESS_STATS_ARR = []
 
     pass
@@ -72,7 +73,7 @@ def cache_fitness_statistics(population_fitness, generation_number) -> None:
                                          three_quarter_fitness,
                                          standard_deviation])
 
-def save_fitness_stats_into_disk(generation_fitness_arr,file_name=RESULTS_FILE_NAME) -> None:
+def save_fitness_stats_into_disk(generation_fitness_arr, file_name) -> None:
     """
     save the fitness stats into disk
     """
@@ -83,13 +84,13 @@ def save_fitness_stats_into_disk(generation_fitness_arr,file_name=RESULTS_FILE_N
         file.write(string_data)
     
 
-def write_file_headers(file_name=RESULTS_FILE_NAME) -> None:
+def write_file_headers(file_name) -> None:
     """
     write the file headers
     """
-    file_headers = ['generation_number', 'min_fitness', 'max_fitness', 'mean_fitness'
+    file_headers = ['generation_number', 'min_fitness', 'max_fitness', 'mean_fitness',
                     'median_fitness', 'quarter_fitness', 'three_quarter_fitness', 'standard_deviation']
     file_headers_string = str(file_headers).replace(']', '').replace('[', '').replace('\'', '') + '\n'
 
-    with open(RESULTS_FILE_NAME, mode='w') as file:
+    with open(file_name, mode='w') as file:
         file.write(file_headers_string)

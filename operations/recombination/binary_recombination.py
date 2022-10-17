@@ -23,7 +23,7 @@ def single_point(string_gene1, string_gene2):
         a new created child 
     """
     ## the break point in gene
-    break_point = randint(0, len(string_gene1) )
+    break_point = randint(1, len(string_gene1) - 1 )
 
     child1_gene = string_gene1[:break_point]
     child1_gene += string_gene2[break_point:]

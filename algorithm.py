@@ -210,7 +210,7 @@ def select_best_fitness_value(fitness_function_name) -> int:
     elif fitness_function_name == 'trap':
         return BEST_FITNESS_TRAP
     else:
-        ValueError(f"Error! incorrect fitness function name: {fitness_function_name}!")
+        raise ValueError(f"Error! incorrect fitness function name: {fitness_function_name}!")
     
 
 def refresh_fitness_values(problem_size):

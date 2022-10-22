@@ -1,10 +1,12 @@
 import sys
 from algorithm import execute_program
-from operations.selection import binary_tournament, roulette_wheel
-from operations.recombination.binary_recombination import uniform, single_point
-from operations.mutation.binary_mutation import bit_flipping
-from __init__ import T, MAX_GENERATION_COUNT
-from fitness.binary_fitness import fitness
+from __init__ import T
+from read_json_config import (run_order_dict,
+                                 create_fitness_function_dict,
+                                 create_selection_method_dict, 
+                                 create_recombination_method_dict, 
+                                 create_mutation_method_dict)
+
 
 
 ## check if we want to run the algorithm mulitple run
@@ -14,22 +16,34 @@ algorithm_run_counts = 1
 ## if the run count was given as arguments
 if arg_counts == 2:
     algorithm_run_counts = int(sys.argv[1])
+ 
+for run_id in run_order_dict:
+    print('\n', '#' * 15, f' RUN: {run_id} ', '#' * 15 , '\n')
 
-## setting up the fitness functions
-fitness_functions = fitness(T)
-[onemax, peak, flipflop, fourpeaks, sixpeaks, trap] = [fitness_functions.onemax, 
-                                                        fitness_functions.peak, 
-                                                        fitness_functions.flipflop, 
-                                                        fitness_functions.fourpeaks, 
-                                                        fitness_functions.sixpeaks, 
-                                                        fitness_functions.trap]
-                                                        
-execute_program(algorithm_run_counts, 
-                FITNESS_FUNCTION={'onemax': onemax,'peak': peak, 'flipflop': flipflop, 'fourpeaks': fourpeaks, 'sixpeaks': sixpeaks, 'trap': trap},
-                SELECTION_METHOD= {'roulette_wheel': roulette_wheel}, 
-                RECOMBINATION_METHOD={'single_point': single_point}, 
-                MUTATION_METHOD={'bit_flipping': bit_flipping}, 
-                problem_size_arr=[30], 
-                popSizeArr=[100],
-                P_m=[0.05, 0.1, 0.3, 0.5],
-                P_c=[0.5])
+    fitness_function_arr = run_order_dict[run_id]['FITNESS_FUNCTIONS']
+    FITNESS_FUNCTION_dict = create_fitness_function_dict(fitness_function_arr, T)
+
+    SELECTION_METHOD_arr = run_order_dict[run_id]['SELECTION_METHODS']
+    SELECTION_METHOD_dict = create_selection_method_dict(SELECTION_METHOD_arr)
+
+    RECMOBINATION_arr = run_order_dict[run_id]['RECOMBINATION_METHODS']
+    RECMOBINATION_dict = create_recombination_method_dict(RECMOBINATION_arr)
+
+    MUTATION_arr = run_order_dict[run_id]['MUTATION_METHODS']
+    MUTATION_dict = create_mutation_method_dict(MUTATION_arr)
+
+    PROBLEM_SIZES = run_order_dict[run_id]['PROBLEM_SIZES']
+    POPULATION_SIZES = run_order_dict[run_id]['POPULATION_SIZES']
+
+    PROBABILITIES_MUTATION = run_order_dict[run_id]['PROBABILITIES_MUTATION']
+    PROBABILITIES_CROSSOVER = run_order_dict[run_id]['PROBABILITIES_CROSSOVER']
+
+    execute_program(algorithm_run_counts, 
+                    FITNESS_FUNCTION= FITNESS_FUNCTION_dict,
+                    SELECTION_METHOD= SELECTION_METHOD_dict, 
+                    RECOMBINATION_METHOD= RECMOBINATION_dict, 
+                    MUTATION_METHOD= MUTATION_dict, 
+                    problem_size_arr= PROBLEM_SIZES, 
+                    popSizeArr= POPULATION_SIZES,
+                    P_m= PROBABILITIES_MUTATION,
+                    P_c= PROBABILITIES_CROSSOVER)   

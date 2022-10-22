@@ -38,11 +38,11 @@ def creep(string_gene, p_m):
         if mutation_state:
             ## for integers we randomly choose a value for mutation
             mutated_chromosome = randint(low=0, high=10)
-            mutated_gene += mutated_chromosome
+            mutated_gene += str(mutated_chromosome)
 
         ## else add the same chromosome
         else:
-            mutated_chromosome += chromosome
+            mutated_gene += chromosome
     
     return mutated_gene
 

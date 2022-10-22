@@ -21,7 +21,13 @@ for run_id in run_order_dict:
     print('\n', '#' * 15, f' RUN: {run_id} ', '#' * 15 , '\n')
 
     fitness_function_arr = run_order_dict[run_id]['FITNESS_FUNCTIONS']
-    FITNESS_FUNCTION_dict = create_fitness_function_dict(fitness_function_arr, T)
+    ## uncomment below while using binary genes
+    # FITNESS_FUNCTION_dict = create_fitness_function_dict(fitness_function_arr, T=T)
+
+    ## for integer genes, the original gene needed to be the size of problem_size and given the question in the exercise its size is 10
+    ## so we need to multiply it to cover the lengths with more than 10 (since we had max size 15, multiplication with 5 is much more than enough)
+    FITNESS_FUNCTION_dict = create_fitness_function_dict(fitness_function_arr, gene_original=run_order_dict[run_id]['GENE_ORIGNIAL'] * 5)
+
 
     SELECTION_METHOD_arr = run_order_dict[run_id]['SELECTION_METHODS']
     SELECTION_METHOD_dict = create_selection_method_dict(SELECTION_METHOD_arr)

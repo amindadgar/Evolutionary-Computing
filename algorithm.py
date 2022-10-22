@@ -209,6 +209,12 @@ def select_best_fitness_value(fitness_function_name) -> int:
         return BEST_FITNESS_SIX_PEAKS
     elif fitness_function_name == 'trap':
         return BEST_FITNESS_TRAP
+    elif fitness_function_name == 'f1':
+        return BEST_FITNESS_F1
+    elif fitness_function_name == 'f2':
+        return BEST_FITNESS_F2
+    elif fitness_function_name == 'f3':
+        return BEST_FITNESS_F3
     else:
         raise ValueError(f"Error! incorrect fitness function name: {fitness_function_name}!")
     

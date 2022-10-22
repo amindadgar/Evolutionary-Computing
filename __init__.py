@@ -6,6 +6,8 @@
 PROBLEM_SIZE = 10
 MAX_GENERATION_COUNT = 300
 
+### specify the json file name here
+JSON_FILE_NAME = "Q3_run_order.json"
 
 ## saving the fitness values statistics in result
 ## how many iteration once to save the results

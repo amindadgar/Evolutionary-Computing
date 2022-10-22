@@ -97,7 +97,7 @@ def select_recombination_method_function(recombination_method_name):
     elif recombination_method_name == 'single_point':
         return single_point
     else:
-        raise ValueError(f"Error! incorrect recombination method name: {selection_method_name}!")
+        raise ValueError(f"Error! incorrect recombination method name: {recombination_method_name}!")
 
 def create_recombination_method_dict(recombination_method_arr):
     """
@@ -118,7 +118,7 @@ def select_mutation_method_function(mutation_method_name):
     if mutation_method_name == 'bit_flipping':
         return bit_flipping
     else:
-        raise ValueError(f"Error! incorrect recombination method name: {selection_method_name}!")
+        raise ValueError(f"Error! incorrect recombination method name: {mutation_method_name}!")
 
 def create_mutation_method_dict(mutation_method_arr):
     """

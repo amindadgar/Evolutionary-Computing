@@ -1,4 +1,4 @@
-from numpy import random, where, array
+from numpy import random, where, array, ones
 """
 Selection methods 
 """
@@ -28,15 +28,18 @@ def roulette_wheel(population, pop_fitness, selection_pop_size=2, with_replaceme
     selected_population : array
         the selected population for the new generation
     """
-
-    # find the probability of selection of each gene in population
-    population_probability = pop_fitness / sum(pop_fitness)
+    if sum(pop_fitness) != 0:
+        # find the probability of selection of each gene in population
+        population_probability = array(pop_fitness) / sum(pop_fitness)
+    else:
+        ## if all the population fitness was zero, then apply probabilities uniformly
+        population_probability = ones(len(pop_fitness)) / len(pop_fitness)
 
     # new population selection
     selected_population = random.choice(population, 
                             size=selection_pop_size,
                             p=population_probability,
-                            raplce=with_replacement)
+                            replace=with_replacement)
 
     return selected_population
 

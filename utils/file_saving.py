@@ -2,7 +2,7 @@
  Saving the results of the generation algorithm into a file
 """
 import numpy as np
-from algorithm_config import SAVING_STATISTICS_INTERVAL, RESULTS_FILE_NAME, MAX_GENERATION_COUNT
+from algorithm_config import SAVING_STATISTICS_INTERVAL
 
 
 ## save the generation fitnesses and when SAVING_STATISTICS_INTERVAL comes, flush it all into a file

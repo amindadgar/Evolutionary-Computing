@@ -1,4 +1,77 @@
 {
+    "order_1":{
+        "FITNESS_FUNCTIONS": ["onemax","peak", "flipflop", "fourpeaks", "sixpeaks", "trap"],
+        "SELECTION_METHODS": ["binary_tournament"],
+        "RECOMBINATION_METHODS": ["single_point"],
+        "MUTATION_METHODS": ["bit_flipping"],
+        "PROBLEM_SIZES": [10, 30, 50, 100],
+        "POPULATION_SIZES": [200],
+        "PROBABILITIES_MUTATION": [0.7],
+        "PROBABILITIES_CROSSOVER": [0.5]
+    },"order_2":{
+        "FITNESS_FUNCTIONS": ["onemax","peak", "flipflop", "fourpeaks", "sixpeaks", "trap"],
+        "SELECTION_METHODS": ["binary_tournament"],
+        "RECOMBINATION_METHODS": ["uniform"],
+        "MUTATION_METHODS": ["bit_flipping"],
+        "PROBLEM_SIZES": [10, 30, 50, 100],
+        "POPULATION_SIZES": [100],
+        "PROBABILITIES_MUTATION": [0.1],
+        "PROBABILITIES_CROSSOVER": [1]
+    },"order_3":{
+        "FITNESS_FUNCTIONS": ["onemax","peak", "flipflop", "fourpeaks", "sixpeaks", "trap"],
+        "SELECTION_METHODS": ["binary_tournament"],
+        "RECOMBINATION_METHODS": ["uniform"],
+        "MUTATION_METHODS": ["bit_flipping"],
+        "PROBLEM_SIZES": [50],
+        "POPULATION_SIZES": [50, 100, 200, 300],
+        "PROBABILITIES_MUTATION": [0.05],
+        "PROBABILITIES_CROSSOVER": [0.7]
+    },"order_4":{
+        "FITNESS_FUNCTIONS": ["onemax","peak", "flipflop", "fourpeaks", "sixpeaks", "trap"],
+        "SELECTION_METHODS": ["roulette_wheel"],
+        "RECOMBINATION_METHODS": ["uniform"],
+        "MUTATION_METHODS": ["bit_flipping"],
+        "PROBLEM_SIZES": [30],
+        "POPULATION_SIZES": [50, 100, 200, 300],
+        "PROBABILITIES_MUTATION": [0.3],
+        "PROBABILITIES_CROSSOVER": [0.5]
+    },"order_5":{
+        "FITNESS_FUNCTIONS": ["onemax","peak", "flipflop", "fourpeaks", "sixpeaks", "trap"],
+        "SELECTION_METHODS": ["binary_tournament"],
+        "RECOMBINATION_METHODS": ["single_point"],
+        "MUTATION_METHODS": ["bit_flipping"],
+        "PROBLEM_SIZES": [10],
+        "POPULATION_SIZES": [50],
+        "PROBABILITIES_MUTATION": [0.3],
+        "PROBABILITIES_CROSSOVER": [0.5, 0.7, 0.9, 1]
+    },"order_6":{
+        "FITNESS_FUNCTIONS": ["onemax","peak", "flipflop", "fourpeaks", "sixpeaks", "trap"],
+        "SELECTION_METHODS": ["roulette_wheel"],
+        "RECOMBINATION_METHODS": ["single_point"],
+        "MUTATION_METHODS": ["bit_flipping"],
+        "PROBLEM_SIZES": [50],
+        "POPULATION_SIZES": [300],
+        "PROBABILITIES_MUTATION": [0.1],
+        "PROBABILITIES_CROSSOVER": [0.5, 0.7, 0.9, 1]
+    },"order_7":{
+        "FITNESS_FUNCTIONS": ["onemax","peak", "flipflop", "fourpeaks", "sixpeaks", "trap"],
+        "SELECTION_METHODS": ["roulette_wheel"],
+        "RECOMBINATION_METHODS": ["uniform"],
+        "MUTATION_METHODS": ["bit_flipping"],
+        "PROBLEM_SIZES": [100],
+        "POPULATION_SIZES": [200],
+        "PROBABILITIES_MUTATION": [0.05, 0.1, 0.3, 0.5],
+        "PROBABILITIES_CROSSOVER": [0.9]
+    },"order_8":{
+        "FITNESS_FUNCTIONS": ["onemax","peak", "flipflop", "fourpeaks", "sixpeaks", "trap"],
+        "SELECTION_METHODS": ["roulette_wheel"],
+        "RECOMBINATION_METHODS": ["single_point"],
+        "MUTATION_METHODS": ["bit_flipping"],
+        "PROBLEM_SIZES": [30],
+        "POPULATION_SIZES": [100],
+        "PROBABILITIES_MUTATION": [0.05, 0.1, 0.3, 0.5],
+        "PROBABILITIES_CROSSOVER": [0.5]
+    },
     "order_9":{
         "FITNESS_FUNCTIONS": ["onemax","peak", "flipflop", "fourpeaks", "sixpeaks", "trap"],
         "SELECTION_METHODS": ["binary_tournament", "roulette_wheel"],

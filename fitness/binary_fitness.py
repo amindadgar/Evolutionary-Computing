@@ -3,17 +3,10 @@
 
 
 class fitness:
-    def __init__(self, T) -> None:
+    def __init__(self) -> None:
         """
         fitness functions classes
-
-        Parameters:
-        ------------
-        T : integer
-            hyperparameter for the `R` function
-        
         """
-        self.T = T
     
     def onemax(self, string_gene) -> int:
         """
@@ -115,7 +108,7 @@ class fitness:
         fitness : int
             the fitness of the gene
         """
-        T = self.T
+        T = len(string_gene) * 0.1
 
         fitness = max(self.__tail(string_gene, '0'), self.__head(string_gene, '1')) + self.__R(string_gene, T, 'fourpeak')
 
@@ -139,7 +132,7 @@ class fitness:
         fitness : int
             the fitness of the gene
         """
-        T = self.T
+        T = len(string_gene) * 0.1
 
         fitness = max(self.__tail(string_gene, '0'), self.__head(string_gene, '1')) + self.__R(string_gene, T, 'sixpeak')
 
@@ -161,7 +154,13 @@ class fitness:
         fitness : int
             the fitness of the gene
         """
+        ## in order not to have negative fitness value, we can shift all the fitness values
+        ## the original trap function limit is [`-ProblemSize +1` ,`2*problemSize`]
+        ## so adding the value `ProblemSize - 1` can fix the issue of negative value by converting it to zero
         fitness = 3 * len(string_gene) * self.peak(string_gene) - self.onemax(string_gene)
+
+        ## fixing the zero value problem
+        fitness += len(string_gene) - 1
 
         return fitness
 
@@ -187,13 +186,13 @@ class fitness:
 
         if fitness_function == 'sixpeak':
             ## because the conditions were too lengthy, we seperated them in two variables
-            condition1 = (self.__tail(string_gene, '0') > T) or self.__head(string_gene, '1') > T
-            condition2 = (self.__tail(string_gene, '1') > T) or self.__head(string_gene, '0') > T
+            condition1 = (self.__tail(string_gene, '0') > T) and (self.__head(string_gene, '1') > T)
+            condition2 = (self.__tail(string_gene, '1') > T) and (self.__head(string_gene, '0') > T)
 
             condition = condition1 or condition2
 
         elif fitness_function == 'fourpeak':
-            condition = (self.__tail(string_gene, '0') > T) or self.__head(string_gene, '1') > T
+            condition = (self.__tail(string_gene, '0') > T) and (self.__head(string_gene, '1') > T)
         else:
             raise ValueError(f'fitness_function variable should be either \'sixpeak\' or \'fourpeak\'\nNow is {fitness_function}')
 
@@ -259,7 +258,7 @@ class fitness:
         not_value = '0' if value == '1' else '1'
 
         ## index of the value, can be also assumed as count
-        count = string_gene.find(not_value) + 1
+        count = string_gene.find(not_value)
 
         ## if not any chromosome with `value` was found!
         if count == -1:

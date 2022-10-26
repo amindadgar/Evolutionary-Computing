@@ -14,14 +14,12 @@ with open(JSON_FILE_NAME) as json_file:
 
 
 
-def select_fitness_function(fitness_function_name, T, gene_original=None):
+def select_fitness_function(fitness_function_name, gene_original=None):
     """
     Parameters:
     ------------
     fitness_function_name : string
         fitness function name in string
-    T : int
-        the hyperparameter for fourpeaks and sixpeaks fitness functions
     gene_original : string
         must be specified if integer genes were using
     
@@ -32,7 +30,7 @@ def select_fitness_function(fitness_function_name, T, gene_original=None):
     """
     ## setting up the fitness functions
     ## binary fitness_functions
-    fitness_functions = fitness(T)
+    fitness_functions = fitness()
     
     [onemax, peak, flipflop, fourpeaks, sixpeaks, trap] = [fitness_functions.onemax, 
                                                             fitness_functions.peak, 
@@ -91,7 +89,7 @@ def create_fitness_function_dict(fitness_function_name_arr, T=None, gene_origina
 
     FITNESS_FUNCTION_dict = {}
     for function_name in fitness_function_name_arr:
-        FITNESS_FUNCTION_dict[function_name] = select_fitness_function(function_name, T, gene_original)
+        FITNESS_FUNCTION_dict[function_name] = select_fitness_function(function_name, gene_original)
 
     return FITNESS_FUNCTION_dict
 

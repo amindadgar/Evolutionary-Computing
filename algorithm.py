@@ -2,12 +2,24 @@ from __init__ import *
 import os
 
 
+def adjust_fitness_function_values(value):
+    """
+    Adjust the best value for fourpeaks and sixpeaks fitness functions
+    if the value itself was integer return it with minus 1
+    else if the integer conversion can make it less
+    """
+    if int(value) == value:
+        return value - 1
+    else:
+        return int(value) 
+
+
 ### The best fitness values
 BEST_FITNESS_ONE_MAX = PROBLEM_SIZE
 BEST_FITNESS_PEAK = 1
 BEST_FITNESS_FLIP_FLOP = PROBLEM_SIZE - 1
-BEST_FITNESS_FOUR_PEAKS = 2 * PROBLEM_SIZE
-BEST_FITNESS_SIX_PEAKS = 2 * PROBLEM_SIZE
+BEST_FITNESS_FOUR_PEAKS = adjust_fitness_function_values(0.9 * PROBLEM_SIZE) + PROBLEM_SIZE
+BEST_FITNESS_SIX_PEAKS = adjust_fitness_function_values(0.9 * PROBLEM_SIZE) + PROBLEM_SIZE
 BEST_FITNESS_TRAP = 2 * PROBLEM_SIZE
 
 BEST_FITNESS_F1 = 1
@@ -142,9 +154,9 @@ def algorithm_run(file_name, problem_size, best_fitness_value, FITNESS_FUNCTION,
         generation_fitness_save(best_of_generation_fitness, generation_count, end_condition, file_name)        
 
         if convergence_condition:
-            print(f"Algorithm converged in {generation_count} generations!")
+            print(f"Algorithm converged in {generation_count} generations, best_one={best_of_generation_fitness[-1]}, best_fitness_value={best_fitness_value} and chromosome: {best_of_generation_population[-1]}!")
         elif end_condition:
-            print(f"Algorithm did not converged and ended in selected max generation count {generation_count}, best_one={best_of_generation_fitness[-1]}, best_fitness_value={best_fitness_value}!")
+            print(f"Algorithm did not converged and ended in selected max generation count {generation_count}, best_one={best_of_generation_fitness[-1]}, best_fitness_value={best_fitness_value} and chromosome: {best_of_generation_population[-1]}!")
 
 
 
@@ -241,8 +253,8 @@ def refresh_fitness_values(problem_size):
     BEST_FITNESS_ONE_MAX = problem_size
     BEST_FITNESS_PEAK = 1
     BEST_FITNESS_FLIP_FLOP = problem_size - 1
-    BEST_FITNESS_FOUR_PEAKS = 2 * problem_size
-    BEST_FITNESS_SIX_PEAKS = 2 * problem_size
+    BEST_FITNESS_FOUR_PEAKS = adjust_fitness_function_values(0.9 * problem_size) + problem_size
+    BEST_FITNESS_SIX_PEAKS = adjust_fitness_function_values(0.9 * problem_size) + problem_size
     BEST_FITNESS_TRAP = 2 * problem_size
 
     BEST_FITNESS_F1 = 1

@@ -14,17 +14,31 @@ def adjust_fitness_function_values(value):
         return int(value) 
 
 
-### The best fitness values
-BEST_FITNESS_ONE_MAX = PROBLEM_SIZE
-BEST_FITNESS_PEAK = 1
-BEST_FITNESS_FLIP_FLOP = PROBLEM_SIZE - 1
-BEST_FITNESS_FOUR_PEAKS = adjust_fitness_function_values(0.9 * PROBLEM_SIZE) + PROBLEM_SIZE
-BEST_FITNESS_SIX_PEAKS = adjust_fitness_function_values(0.9 * PROBLEM_SIZE) + PROBLEM_SIZE
-BEST_FITNESS_TRAP = 2 * PROBLEM_SIZE
+# ### The best fitness values
+# BEST_FITNESS_ONE_MAX = PROBLEM_SIZE
+# BEST_FITNESS_PEAK = 1
+# BEST_FITNESS_FLIP_FLOP = PROBLEM_SIZE - 1
+# BEST_FITNESS_FOUR_PEAKS = adjust_fitness_function_values(0.9 * PROBLEM_SIZE) + PROBLEM_SIZE
+# BEST_FITNESS_SIX_PEAKS = adjust_fitness_function_values(0.9 * PROBLEM_SIZE) + PROBLEM_SIZE
+# ## the shifted values
+# BEST_FITNESS_TRAP = 2 * PROBLEM_SIZE + PROBLEM_SIZE - 1
 
-BEST_FITNESS_F1 = 1
-BEST_FITNESS_F2 = PROBLEM_SIZE
-BEST_FITNESS_F3 = 0
+# BEST_FITNESS_F1 = 1
+# BEST_FITNESS_F2 = PROBLEM_SIZE
+# BEST_FITNESS_F3 = 0
+
+### The best fitness values
+BEST_FITNESS_ONE_MAX = None
+BEST_FITNESS_PEAK = None
+BEST_FITNESS_FLIP_FLOP = None
+BEST_FITNESS_FOUR_PEAKS = None
+BEST_FITNESS_SIX_PEAKS = None
+## the shifted values
+BEST_FITNESS_TRAP = None
+
+BEST_FITNESS_F1 = None
+BEST_FITNESS_F2 = None
+BEST_FITNESS_F3 = None
 
 def algorithm_run(file_name, problem_size, best_fitness_value, FITNESS_FUNCTION,SELECTION_METHOD, RECOMBINATION_METHOD, MUTATION_METHOD, pop_size, p_m, p_c ):
     """
@@ -160,7 +174,7 @@ def algorithm_run(file_name, problem_size, best_fitness_value, FITNESS_FUNCTION,
 
 
 
-def execute_program(algorithm_run_counts, FITNESS_FUNCTION, SELECTION_METHOD, RECOMBINATION_METHOD, MUTATION_METHOD, problem_size_arr, popSizeArr, P_m, P_c ,additional_fileName='') -> None:
+def execute_program(algorithm_run_counts, FITNESS_FUNCTION, SELECTION_METHOD, RECOMBINATION_METHOD, MUTATION_METHOD, problem_size_arr, popSizeArr, P_m, P_c ,additional_fileName='', T=None) -> None:
     """
     Execute algorithm multiple time
 
@@ -180,15 +194,20 @@ def execute_program(algorithm_run_counts, FITNESS_FUNCTION, SELECTION_METHOD, RE
                 for fitness_function in FITNESS_FUNCTION.keys():
                     
                     for problem_size in problem_size_arr:
-                        refresh_fitness_values(problem_size)
+                        refresh_fitness_values(problem_size, T)
                         best_fitness_value = select_best_fitness_value(fitness_function)
                         
                         for probability_cross_over in P_c:
                             for probability_mutation in P_m: 
                                 for population_size in popSizeArr:
                                     for i in range(algorithm_run_counts):
+                                        ## if the T value was specified or not
+                                        file_name = None
+                                        if T is None:
+                                            file_name = f'Resutls_fitness-function={fitness_function}_Pc={probability_cross_over}_Pm={probability_mutation}_PopSize={population_size}_ProblemSize={problem_size}_selection-method={selection_method}_recombination-method={recombination_method}_mutation-method={mutation_method}_algorithm_run={i}{additional_fileName}.csv'
+                                        else:
+                                            file_name = f'Resutls_fitness-function={fitness_function}_Pc={probability_cross_over}_Pm={probability_mutation}_PopSize={population_size}_ProblemSize={problem_size}_selection-method={selection_method}_recombination-method={recombination_method}_mutation-method={mutation_method}_T={T}_algorithm_run={i}{additional_fileName}.csv'
                                         
-                                        file_name = f'Resutls_fitness-function={fitness_function}_Pc={probability_cross_over}_Pm={probability_mutation}_PopSize={population_size}_ProblemSize={problem_size}_selection-method={selection_method}_recombination-method={recombination_method}_mutation-method={mutation_method}_algorithm_run={i}{additional_fileName}.csv'
                                         file_name = os.path.join('results', file_name)
                                         print(f'{file_name}: ', '\n' + '-'*15)
                                         
@@ -231,7 +250,7 @@ def select_best_fitness_value(fitness_function_name) -> int:
         raise ValueError(f"Error! incorrect fitness function name: {fitness_function_name}!")
     
 
-def refresh_fitness_values(problem_size):
+def refresh_fitness_values(problem_size, T=None):
     """
     Referesh the configs based on the problem size
     """
@@ -253,8 +272,13 @@ def refresh_fitness_values(problem_size):
     BEST_FITNESS_ONE_MAX = problem_size
     BEST_FITNESS_PEAK = 1
     BEST_FITNESS_FLIP_FLOP = problem_size - 1
-    BEST_FITNESS_FOUR_PEAKS = adjust_fitness_function_values(0.9 * problem_size) + problem_size
-    BEST_FITNESS_SIX_PEAKS = adjust_fitness_function_values(0.9 * problem_size) + problem_size
+    if T is None:
+        BEST_FITNESS_FOUR_PEAKS = adjust_fitness_function_values(0.9 * problem_size) + problem_size
+        BEST_FITNESS_SIX_PEAKS = adjust_fitness_function_values(0.9 * problem_size) + problem_size
+    else:
+        BEST_FITNESS_FOUR_PEAKS = problem_size - T + problem_size
+        BEST_FITNESS_SIX_PEAKS = problem_size - T + problem_size
+
     BEST_FITNESS_TRAP = 2 * problem_size
 
     BEST_FITNESS_F1 = 1

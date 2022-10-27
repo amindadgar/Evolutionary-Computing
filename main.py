@@ -1,6 +1,6 @@
 import sys
 from algorithm import execute_program
-from __init__ import T
+# from __init__ import T
 from read_json_config import (run_order_dict,
                                  create_fitness_function_dict,
                                  create_selection_method_dict, 
@@ -24,6 +24,13 @@ for run_id in run_order_dict:
     # if run_id != 'order_12':
     #     print(f'{run_id} breaked!')
     #     continue
+
+    ## the `T` value for fourpeaks and sixpeaks functions 
+    T = None
+    if 'T' not in run_order_dict[run_id].keys():
+        T = None
+    else:
+        T = run_order_dict[run_id]['T']
 
     fitness_function_arr = run_order_dict[run_id]['FITNESS_FUNCTIONS']
     ## uncomment the line below while using binary genes
@@ -57,4 +64,5 @@ for run_id in run_order_dict:
                     problem_size_arr= PROBLEM_SIZES, 
                     popSizeArr= POPULATION_SIZES,
                     P_m= PROBABILITIES_MUTATION,
-                    P_c= PROBABILITIES_CROSSOVER)   
+                    P_c= PROBABILITIES_CROSSOVER, 
+                    T=T)   

@@ -3,10 +3,14 @@
 
 
 class fitness:
-    def __init__(self) -> None:
+    def __init__(self, T=None) -> None:
         """
         fitness functions classes
+        T is for fourpeaks and sixpeaks function
+        if T was not given, then it will be problemSize*0.1
+        in which problemSize is len(chromosome) 
         """
+        self.T = T
     
     def onemax(self, string_gene) -> int:
         """
@@ -108,7 +112,12 @@ class fitness:
         fitness : int
             the fitness of the gene
         """
-        T = len(string_gene) * 0.1
+        ## specifying the T value
+        T = None
+        if self.T is not None:
+            T = self.T
+        else:
+            T = len(string_gene) * 0.1
 
         fitness = max(self.__tail(string_gene, '0'), self.__head(string_gene, '1')) + self.__R(string_gene, T, 'fourpeak')
 
@@ -132,7 +141,12 @@ class fitness:
         fitness : int
             the fitness of the gene
         """
-        T = len(string_gene) * 0.1
+        ## specifying the T value
+        T = None
+        if self.T is not None:
+            T = self.T
+        else:
+            T = len(string_gene) * 0.1
 
         fitness = max(self.__tail(string_gene, '0'), self.__head(string_gene, '1')) + self.__R(string_gene, T, 'sixpeak')
 

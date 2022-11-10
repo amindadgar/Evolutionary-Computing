@@ -31,7 +31,7 @@ def generate_vehicles_chromosomes(dataset, MAX_CAPACITY, depot_symbol='(1)'):
 
         else:
             gene += str(data.number.values[0] + 100) 
-    gene += depot_symbol if gene[-1] != depot_symbol else ''
+    gene += depot_symbol if gene[-3:] != depot_symbol else ''
     
     return gene
 

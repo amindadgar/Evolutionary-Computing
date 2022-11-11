@@ -65,19 +65,19 @@ def process_depots_distance_based(dataset, string_chromsome_arr, max_distance, d
     string_chromsome = depot_symbol
     last_X, last_Y = depot_location
     while idx < len(string_chromsome_arr):
-        print(string_chromsome)
         gene = string_chromsome_arr[idx]
-
         customer_no = int(gene) - 100
         customer = dataset[dataset.number == customer_no]
 
         customer_X = customer.x.values[0]
         customer_Y = customer.y.values[0]
         
-        distance_to_depo = distance + abs(last_X - depot_location[0]) + abs(last_Y - depot_location[1])
+        distance_to_depot = distance + abs(last_X - depot_location[0]) + abs(last_Y - depot_location[1])
 
         ## manhatan distance
         distance += abs(last_X - customer_X) + abs(last_Y - customer_Y)
+
+        # print(distance, distance_to_depot, max_distance, customer_no, customer_X, customer_Y)
         
         if distance < max_distance:
             string_chromsome += gene
@@ -87,7 +87,7 @@ def process_depots_distance_based(dataset, string_chromsome_arr, max_distance, d
             idx += 1
         ## if by going to another customer would overcome our limit
         ## and going back to depot is possible (less than max distance)
-        elif distance_to_depo <= max_distance:
+        elif distance >= max_distance and distance_to_depot <= max_distance:
             string_chromsome += depot_symbol
             last_X, last_Y = depot_location
             distance = 0
@@ -95,6 +95,12 @@ def process_depots_distance_based(dataset, string_chromsome_arr, max_distance, d
         else:
             ## the last customer's length is measured
             last_customer_length = len(string_chromsome_arr[idx])
+
+            ## if the last one was depot then, don't decrease the index or remove the gene
+            if string_chromsome[-last_customer_length:] != depot_symbol:
+                distance = 0
+                continue
+
             ## remove the last customer
             string_chromsome = string_chromsome[:-last_customer_length]
             ## and go back to the depot instead of the previous customer
@@ -236,7 +242,8 @@ def mutation_inverse(chromosome, max_capacity, dataset, depot_location, max_dist
     inversed_chromosome_arr = raw_chromsome_arr[:mutation_point1] + raw_chromsome_arr[mutation_point1:mutation_point2][::-1] + raw_chromsome_arr[mutation_point2:]
 
     random_depot = random.sample(depot_symbol, 1)[0]
-    random_depot_location = depot_location[list(depot_symbol).index(random_depot)]
+#     random_depot_location = depot_location[list(depot_symbol).index(random_depot)]
+    random_depot_location = depot_location
     repaired_inversed_chromosome = repair_chromsome(inversed_chromosome_arr, dataset, max_capacity, random_depot, vehicle_count, max_distance, random_depot_location)
 
     return repaired_inversed_chromosome
@@ -264,7 +271,8 @@ def mutation_scramble(chromosome, max_capacity, dataset, depot_location, max_dis
     chromsome_scrambled_arr += raw_chromsome_arr[mutation_point2:]
 
     random_depot = random.sample(depot_symbol, 1)[0]
-    random_depot_location = depot_location[list(depot_symbol).index(random_depot)]
+#     random_depot_location = depot_location[list(depot_symbol).index(random_depot)]
+    random_depot_location = depot_location
     mutated_chromosome = repair_chromsome(chromsome_scrambled_arr, dataset, max_capacity, random_depot, vehicle_count, max_distance, random_depot_location)
 
     return mutated_chromosome

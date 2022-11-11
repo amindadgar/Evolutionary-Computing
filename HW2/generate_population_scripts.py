@@ -1,6 +1,8 @@
 import random
 import numpy as np
 
+EVALUATION_COUNT = 0
+
 def generate_vehicles_chromosomes(dataset, MAX_CAPACITY, depot_symbol='(1)'):
     """
     Generate chromosomes of vehicles from 100 data point (data points are summed with 100 in order to be able to know whether the genes in chromosome )
@@ -98,6 +100,8 @@ def evaluate_distance_fitness(chromsome, DEPOT_LOCATION, dataset):
     evaluate the distance gone for a chromsome containing different vehicle with the splitter symbol `|`
 
     """
+    global EVALUATION_COUNT
+    EVALUATION_COUNT += 1
 
     depot_x_loc, depot_y_loc = DEPOT_LOCATION
 
@@ -168,3 +172,11 @@ def generate_population(max_capacity, DEPOT_LOCATION, dataset, depot_symbol = '(
         fitness_arr.append(chromsome_fitness)
         
     return population_arr, fitness_arr
+
+def get_evalution_count():
+    global EVALUATION_COUNT
+    return EVALUATION_COUNT
+def set_evaluation_count(value = 0):
+    global EVALUATION_COUNT
+    EVALUATION_COUNT = value
+    return True

@@ -30,6 +30,33 @@ def remove_symbols_chromsome(chromsome, depot_symbols):
 
     return raw_chromsome
 
+def process_depots(dataset ,string_chromsome_arr, max_capacity, depot_symbol):
+    """
+    Add the depot symbols to string chromsome array (the customer numbers are strings in the array)
+    """
+    capacity = 0
+    idx = 0
+    string_chromsome = depot_symbol
+    while idx < len(string_chromsome_arr):
+        gene = string_chromsome_arr[idx]
+
+        customer_no = int(gene) - 100
+        customer = dataset[dataset.number == customer_no]
+
+        capacity += customer.demand.values[0]
+        
+        if capacity > max_capacity:
+            string_chromsome += depot_symbol
+            capacity = 0
+        else:
+            string_chromsome += gene
+            idx += 1
+
+    string_chromsome += depot_symbol if string_chromsome[-3:] != depot_symbol else ''
+    
+    
+    return string_chromsome
+
 def get_chromosome_break_point(chromosome=None, step=3, max_index=None):
     """
     generate randomly a break point for a given chromsome

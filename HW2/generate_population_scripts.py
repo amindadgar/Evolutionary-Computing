@@ -217,12 +217,27 @@ def evaluate_fitness_customers(chromosome, DEPOT_LOCATION, dataset, depot_symbol
     global EVALUATION_COUNT
     EVALUATION_COUNT += 1
 
-    ## make the chromsome raw == remove the chromsome depot symbols and division points
-    raw_chromosome = chromosome.replace(depot_symbol, '').replace('|', '')
-    ## each customer had 3 letters in chromosome
-    customers_served_count = len(raw_chromosome) / 3
+    ## get the vehicles array
+    vehicles_arr = chromosome.split('|')
+    ## the count of customers served in one path from depot to depot
+    customers_seved = 0
+    ## for each vehicle
+    for vehicle in vehicles_arr:
+        ## find all the paths for served customers from depot to depot
+        path_arr = vehicle.split(depot_symbol)
+        ## find the longest path
+        longest_path = max(path_arr, key=len)
+        ## the count of customers served in the longest path
+        customers_seved += len(longest_path) / 3
 
-    return 1 / customers_served_count
+    fitness = 1 / customers_seved
+
+    ## make the chromsome raw == remove the chromsome depot symbols and division points
+    # raw_chromosome = chromosome.replace(depot_symbol, '').replace('|', '')
+    ## each customer had 3 letters in chromosome
+    # customers_served_count = len(raw_chromosome) / 3
+
+    return fitness
 
 
 def generate_population(max_capacity, DEPOT_LOCATION, dataset, depot_symbol = '(1)', pop_count = 10, vehicle_count=6, max_distance=None):

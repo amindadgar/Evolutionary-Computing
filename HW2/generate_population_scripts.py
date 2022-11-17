@@ -205,7 +205,7 @@ def evaluate_distance_fitness(chromsome, DEPOT_LOCATION, dataset, depot_symbol='
     
     return distance
 
-def evaluate_fitness_customers(chromosome, DEPOT_LOCATION, dataset, depot_symbol='(1)'):
+def evaluate_fitness_customers_count(chromosome, DEPOT_LOCATION, dataset, depot_symbol='(1)'):
     """
     evaluate the fitness based on the count of customers served
     we want to maximize the customers count, instead we minimize the 1 divided by the customers count
@@ -232,10 +232,35 @@ def evaluate_fitness_customers(chromosome, DEPOT_LOCATION, dataset, depot_symbol
 
     fitness = 1 / customers_seved
 
-    ## make the chromsome raw == remove the chromsome depot symbols and division points
-    # raw_chromosome = chromosome.replace(depot_symbol, '').replace('|', '')
-    ## each customer had 3 letters in chromosome
-    # customers_served_count = len(raw_chromosome) / 3
+    return fitness
+
+
+
+def evaluate_fitness_customers_served_demands(chromosome, DEPOT_LOCATION, dataset, depot_symbol='(1)'):
+    """
+    evaluate the fitness based on the count of customers' need served
+    we want to maximize the customers served demands, instead we minimize it by dividing 1 with the value
+    (to make the fewer changes in code, we made it a mimization problem as the distance based fitness)
+
+    two inputs `DEPOT_LOCATION` and `dataset` are not used, we just added it to make it like the other fitness functions 
+    """
+
+    global EVALUATION_COUNT
+    EVALUATION_COUNT += 1
+
+    ## get the vehicles array
+    customers_arr = chromosome.replace('|', '').replace(depot_symbol, '')
+    ## the count of customers served in one path from depot to depot
+    demands_served = 0
+    ## for each customer
+    for idx in range(3, len(customers_arr)+1, 3):
+        customer_num = int(customers_arr[idx-3:idx]) - 100
+        cusomter = dataset[dataset.number == customer_num]
+
+        customer_demand = cusomter.demand.values[0]
+        demands_served += customer_demand
+
+    fitness = 1 / demands_served
 
     return fitness
 

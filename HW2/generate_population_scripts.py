@@ -3,11 +3,18 @@ import numpy as np
 
 EVALUATION_COUNT = 0
 
-def generate_vehicles_chromosomes(dataset, MAX_CAPACITY, depot_location ,depot_symbol='(1)', MAX_DISTANCE=None):
+def generate_vehicles_chromosomes(dataset, MAX_CAPACITY, depot_location_dict ,MAX_DISTANCE=None):
     """
-    Generate chromosomes of vehicles from 100 data point (data points are summed with 100 in order to be able to know whether the genes in chromosome )
+    Generate chromosomes of vehicles from customers count (data points are summed with 100 in order to be able to know whether the genes in chromosome )
 
     """
+    ## if the depots were more than one
+    ## choose randomly from one of it
+    depot_symbol = random.choice(list(depot_location_dict.keys()))
+    depot_location = depot_location_dict[depot_symbol]
+
+    
+
     last_X = depot_location[0]
     last_Y = depot_location[1]
 
@@ -20,17 +27,24 @@ def generate_vehicles_chromosomes(dataset, MAX_CAPACITY, depot_location ,depot_s
     else:
         raise ValueError("Both max_distance and max_capacity are None!")
     
+    max_customer_number = max(dataset.number.values)
     ## not served customers array
-    arr = np.linspace(1, 100, 100, dtype=int)
+    arr = np.linspace(1, max_customer_number, max_customer_number, dtype=int)
     arr = list(arr)
 
     gene = depot_symbol
     capacity = 0
     distance = 0    
 
+    chromsome_generation_loop_count = 0
     while len(arr) > 0:
+        chromsome_generation_loop_count += 1
 
-        customer_number = without_replacement_sampling(arr)
+        ## if it couldn't make the chromsome by serving all cusomers, then break the loop
+        if chromsome_generation_loop_count > max_customer_number * 20:
+            break
+
+        customer_number = sampling_function(arr, without_replacement=False)
         data = dataset[dataset.number == customer_number]
         capacity += data.demand.values[0]
         
@@ -44,20 +58,19 @@ def generate_vehicles_chromosomes(dataset, MAX_CAPACITY, depot_location ,depot_s
         ## if we couldn't serve the customer we reached the max_distance
         ## also we should check the distance to depot, 
         ## if going back to depot does not reach the limit, then go back to depot
-        # print(distance,'\n', max_distance,'\n',  distance_to_depo)
         if distance >= max_distance and distance_to_depo <= max_distance:
             gene += depot_symbol
-            
+
             ## reset the distance that the vehicle gone
             distance = 0
 
             ## bring back the customer to our array
             ## since we haven't served him
-            arr.append(data.number.values[0])
+            # arr.append(data.number.values[0])
             last_X, last_Y = depot_location
 
         ## if going back to depot become over the limit, remove the last customer served from schedule and instead of that customer go back to depot  
-        elif distance_to_depo > max_distance:
+        elif distance >= max_distance and distance_to_depo > max_distance:
             ## add the customer to our not served customers list
             arr.append(int(gene[-3:]) - 100)
             ## remove the last customer from gene
@@ -77,12 +90,13 @@ def generate_vehicles_chromosomes(dataset, MAX_CAPACITY, depot_location ,depot_s
 
             ## bring back the customer to our array
             ## since we haven't served him
-            arr.append(data.number.values[0])
+            # arr.append(data.number.values[0])
         ## if everything were normal and we could afford the limitations 
-        # elif capacity <= max_capacity and distance < max_distance:
         else:
             last_X, last_Y = data.x.values[0], data.y.values[0]
             gene += str(data.number.values[0] + 100) 
+            ## if the customer was added to the chromsome, then remove it from sampling array
+            arr.remove(customer_number)
     
     gene += depot_symbol if gene[-3:] != depot_symbol else ''
     
@@ -99,11 +113,25 @@ def divide_vehicles(chromosome, vehicle_count, depot_symbol, max_distance_constr
     if not max_distance_constraint:
         ## division point is the depots
         ## one less vehicle count should be the division points
-        sample_arr = np.linspace(1, chromosome.count(depot_symbol) - 2, chromosome.count(depot_symbol) - 1, dtype=int )
+
+        depot_count = chromosome.count(depot_symbol)
+        sample_arr = np.linspace(1, depot_count - 2, depot_count - 1, dtype=int )
         sample_arr = list(sample_arr)
         division_point = []
-        for _ in range(vehicle_count - 1):
-            point = without_replacement_sampling(sample_arr)
+
+        condition_iteration = vehicle_count
+        if vehicle_count > len(sample_arr):
+            condition_iteration = len(sample_arr)
+            print(f"vehicles are more!, {vehicle_count}, {len(sample_arr)}")
+            
+        # for _ in range(vehicle_count - 1):
+        for _ in range(condition_iteration):
+            point = None
+            try:
+                point = sampling_function(sample_arr)
+            except ValueError as e:
+                print(f"Exception: {e}, \nvehicle count: {vehicle_count}, chromosome.count(depot_symbol): {depot_count}")
+                quit()
             division_point.append(point)
             
         ## making the copy of string
@@ -119,7 +147,7 @@ def divide_vehicles(chromosome, vehicle_count, depot_symbol, max_distance_constr
             
             vehicle_chromsome = vehicle_chromsome[:occurance_idx+2] + '|' + vehicle_chromsome[occurance_idx+2:]
     ## if the constraint was the distance
-    ## just partition the chromosome with the depots symbol  
+    ## just partition the chromosome using the depots symbol  
     else:
         ## the index for vehicle
         ## to check whether we reached the limit of vehicles or not
@@ -142,19 +170,41 @@ def divide_vehicles(chromosome, vehicle_count, depot_symbol, max_distance_constr
 
     return vehicle_chromsome
 
-def without_replacement_sampling(array):
+def sampling_function(array, without_replacement=True):
     """
-    get some value without replacement from array
+    get some value with or without replacement from array
     """
     sampled_value = random.sample(array, 1)
-    array.remove(sampled_value[0])
+    if without_replacement:
+        array.remove(sampled_value[0])
 
     return sampled_value[0]
+
+def find_depot_using(chromosome, depot_symbols_arr):
+    """
+    find the depot that the vehicle is using 
+    
+    """
+    ## to check the chromsome is whether using one or more depots
+    depot_count = 0
+
+    ## find the depot, related to the chromosome
+    depot_symbol = None
+    for depot in depot_symbols_arr:
+        depot_symbol_availability = chromosome.find(depot)
+        ## if it was available, then put the depot symbol
+        if depot_symbol_availability != -1:
+            depot_count += 1
+            if depot_count > 1:
+                raise ValueError(f"Chromsome is using more than one depot!, the last found depot is: {depot}")
+            depot_symbol = depot
+    
+    return depot_symbol
 
 def process_division_points(vehicle_chromosome, depot_symbol):
     """
     Add the depot symbol after the division points
-    """
+    """    
     processed_vehicle_chromsome = vehicle_chromosome
 
     division_counts = vehicle_chromosome.count('|')
@@ -171,7 +221,7 @@ def process_division_points(vehicle_chromosome, depot_symbol):
     return processed_vehicle_chromsome
 
 
-def evaluate_distance_fitness(chromsome, DEPOT_LOCATION, dataset, depot_symbol='(1)'):
+def evaluate_distance_fitness(chromsome, DEPOT_LOCATION, dataset, depot_symbol):
     """
     evaluate the distance gone for a chromsome containing different vehicle with the splitter symbol `|`
 
@@ -205,7 +255,7 @@ def evaluate_distance_fitness(chromsome, DEPOT_LOCATION, dataset, depot_symbol='
     
     return distance
 
-def evaluate_fitness_customers_count(chromosome, DEPOT_LOCATION, dataset, depot_symbol='(1)'):
+def evaluate_fitness_customers_count(chromosome, DEPOT_LOCATION, dataset, depot_symbol):
     """
     evaluate the fitness based on the count of customers served
     we want to maximize the customers count, instead we minimize the 1 divided by the customers count
@@ -236,13 +286,13 @@ def evaluate_fitness_customers_count(chromosome, DEPOT_LOCATION, dataset, depot_
 
 
 
-def evaluate_fitness_customers_served_demands(chromosome, DEPOT_LOCATION, dataset, depot_symbol='(1)'):
+def evaluate_fitness_customers_served_demands(chromosome, DEPOT_LOCATION, dataset, depot_symbol):
     """
     evaluate the fitness based on the count of customers' need served
     we want to maximize the customers served demands, instead we minimize it by dividing 1 with the value
     (to make the fewer changes in code, we made it a mimization problem as the distance based fitness)
 
-    two inputs `DEPOT_LOCATION` and `dataset` are not used, we just added it to make it like the other fitness functions 
+    two inputs `DEPOT_LOCATION` and are not used, we just added it to make it like the other fitness functions 
     """
 
     global EVALUATION_COUNT
@@ -264,21 +314,69 @@ def evaluate_fitness_customers_served_demands(chromosome, DEPOT_LOCATION, datase
 
     return fitness
 
+def evaluate_fitness_vehicle_count(chromosome, DEPOT_LOCATION, dataset, depot_symbol, customers_count=150, max_distance_limit=200):
+    """
+    evaluate the fitness based on the vehicles used count
+    we want to minimize the vehicle count
 
-def generate_population(max_capacity, DEPOT_LOCATION, dataset, depot_symbol = '(1)', pop_count = 10, vehicle_count=6, max_distance=None):
+    two inputs `DEPOT_LOCATION`, `dataset` and `depot_symbol` are not used, we just added it to make it like the other fitness functions 
+    """
+    ## save it to normalise after using the other evaluation function for multiple time
+    ## then bring the value back to its original
+    global EVALUATION_COUNT
+    eval_count = EVALUATION_COUNT  + 1
+
+    vehicle_count = chromosome.count('|') + 1
+
+    fitness = vehicle_count
+
+    ## if all customers were not served then the chromsome is not applicable and put a high value representing bad fitness
+    chromsome_customer_count = len(chromosome.replace('|', '').replace(depot_symbol, '')) / 3 
+    if chromsome_customer_count != customers_count:
+        # fitness = 9999999
+        ## minimization was our goal, so 1 is divided by (customers_count / chromsome_customer_count)
+        fitness = vehicle_count + (customers_count / chromsome_customer_count)
+    else:
+        ## the distance for each vehicle
+        for chromsome_vehicle in chromosome.split('|'):
+            distance_gone = evaluate_distance_fitness(chromsome_vehicle, DEPOT_LOCATION, dataset, depot_symbol)
+
+            ## if distance_gone was more than limit, then use the fitness_value as unapplicable (a max value in minimization problem) 
+            if distance_gone > max_distance_limit:
+                fitness = 9999999
+
+    ## bringing the evaluation count back to original
+    EVALUATION_COUNT = eval_count 
+    
+    return fitness
+
+
+def generate_population(max_capacity, dataset, fitness_function, depot_location_dict, pop_count = 10, vehicle_count=6, max_distance=None, vehicle_depot_constraint=True):
     """
     generate the population of the problem
 
     Parameters:
     ------------
-    depot_symbol : string
-        the symbol for the depot
+    depot_location_dict : dictionary
+        the dictionary of depots
     max_capacity : int
         the constraint of the problem, maximum capacity of a vehicle
     max_distance : int
         the constraint of the problem, maximum distance each vehicle can go
+        default is `None`
     dataset : dataframe
         the whole information about the problem
+    pop_count : int
+        the count of the population
+        default is 10
+    vehicle_count : int
+        the count of vehicles to use
+        default is 6
+    fitness_function : function
+        the function for evaluating the chromsomes
+    vehicle_depot_constraint : bool
+        the constraint for belonging each vehicle to one depot
+        default is True, meaning the vehicle does always belong to one depot! (can not go to another depot)
 
     Returns:
     ----------
@@ -296,9 +394,21 @@ def generate_population(max_capacity, DEPOT_LOCATION, dataset, depot_symbol = '(
     for _ in range(pop_count):
         
         ## just make chromsomes with depot symbols
-        chromsome = generate_vehicles_chromosomes(dataset, max_capacity, DEPOT_LOCATION, depot_symbol, max_distance)
+        chromsome = generate_vehicles_chromosomes(dataset, max_capacity, depot_location_dict, max_distance)
+        
+        ## if vehicle count was None, generate numebr of vehicles randomly
+        if vehicle_count is None:
+            ## the maximum vehicle is set as 60 here
+            vehicle_count_value = random.randint(5, 100)
+        else:
+            vehicle_count_value = vehicle_count
+        
+        ## to find the location and the symbol of the depot
+        depot_symbol = find_depot_using(chromsome, list(depot_location_dict.keys()))
+        depot_location = depot_location_dict[depot_symbol]
+
         ## divide it into different part to make it like different vehicles
-        vehicle_chromsome = divide_vehicles(chromsome, vehicle_count, depot_symbol)
+        vehicle_chromsome = divide_vehicles(chromsome, vehicle_count_value, depot_symbol, max_distance_constraint= (max_distance is not None))
         ## process the divisions and make sure that the start points has the depot symbol 
         processed_vehicle_chromsome = process_division_points(vehicle_chromsome, depot_symbol)
         
@@ -306,7 +416,7 @@ def generate_population(max_capacity, DEPOT_LOCATION, dataset, depot_symbol = '(
         population_arr.append(processed_vehicle_chromsome)
 
         ## fitness evaluations
-        chromsome_fitness = evaluate_distance_fitness(processed_vehicle_chromsome, DEPOT_LOCATION, dataset)
+        chromsome_fitness = fitness_function(processed_vehicle_chromsome, depot_location, dataset, depot_symbol)
         fitness_arr.append(chromsome_fitness)
         
     return population_arr, fitness_arr

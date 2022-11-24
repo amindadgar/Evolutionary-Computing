@@ -327,7 +327,7 @@ def process_division_points(vehicle_chromosome, depot_symbol_arr, vehicle_depot_
     return processed_vehicle_chromsome
 
 
-def evaluate_distance_fitness(chromsome, DEPOT_LOCATION, dataset, depot_symbol):
+def evaluate_distance_fitness(chromsome, DEPOT_LOCATION, dataset):
     """
     evaluate the distance gone for a chromsome containing different vehicle with the splitter symbol `|`
 
@@ -362,7 +362,7 @@ def evaluate_distance_fitness(chromsome, DEPOT_LOCATION, dataset, depot_symbol):
     
     return distance
 
-def evaluate_fitness_customers_count(chromosome, DEPOT_LOCATION, dataset, depot_symbol):
+def evaluate_fitness_customers_count(chromosome, DEPOT_LOCATION, dataset):
     """
     evaluate the fitness based on the count of customers served
     we want to maximize the customers count, instead we minimize the 1 divided by the customers count
@@ -381,7 +381,8 @@ def evaluate_fitness_customers_count(chromosome, DEPOT_LOCATION, dataset, depot_
     ## for each vehicle
     for vehicle in vehicles_arr:
         ## find all the paths for served customers from depot to depot
-        path_arr = vehicle.split(depot_symbol)
+        path_arr = re.split('\(\d+\)', vehicle)
+        # path_arr = vehicle.split(depot_symbol)
         ## find the longest path
         longest_path = max(path_arr, key=len)
         ## the count of customers served in the longest path
@@ -393,7 +394,7 @@ def evaluate_fitness_customers_count(chromosome, DEPOT_LOCATION, dataset, depot_
 
 
 
-def evaluate_fitness_customers_served_demands(chromosome, DEPOT_LOCATION, dataset, depot_symbol):
+def evaluate_fitness_customers_served_demands(chromosome, DEPOT_LOCATION, dataset):
     """
     evaluate the fitness based on the count of customers' need served
     we want to maximize the customers served demands, instead we minimize it by dividing 1 with the value
@@ -406,7 +407,9 @@ def evaluate_fitness_customers_served_demands(chromosome, DEPOT_LOCATION, datase
     EVALUATION_COUNT += 1
 
     ## get the vehicles array
-    customers_arr = chromosome.replace('|', '').replace(depot_symbol, '')
+    customers_arr = chromosome.replace('|', '')
+    ## replace the depot symbols with empty string
+    customers_arr = re.sub('\(\d+\)', '', customers_arr)
     ## the count of customers served in one path from depot to depot
     demands_served = 0
     ## for each customer
@@ -421,12 +424,11 @@ def evaluate_fitness_customers_served_demands(chromosome, DEPOT_LOCATION, datase
 
     return fitness
 
-def evaluate_fitness_vehicle_count(chromosome, DEPOT_LOCATION, dataset, depot_symbol, customers_count=150, max_distance_limit=200):
+def evaluate_fitness_vehicle_count(chromosome, DEPOT_LOCATION, dataset, customers_count=150, max_distance_limit=200):
     """
     evaluate the fitness based on the vehicles used count
     we want to minimize the vehicle count
 
-    two inputs `DEPOT_LOCATION`, `dataset` and `depot_symbol` are not used, we just added it to make it like the other fitness functions 
     """
     ## save it to normalise after using the other evaluation function for multiple time
     ## then bring the value back to its original
@@ -441,7 +443,7 @@ def evaluate_fitness_vehicle_count(chromosome, DEPOT_LOCATION, dataset, depot_sy
     distance_over = 0
     ## the distance for each vehicle
     for chromsome_vehicle in chromosome.split('|'):
-        distance_gone = evaluate_distance_fitness(chromsome_vehicle, DEPOT_LOCATION, dataset, depot_symbol)
+        distance_gone = evaluate_distance_fitness(chromsome_vehicle, DEPOT_LOCATION, dataset)
         
         ## sum the more distances over the limit
         if distance_gone > max_distance_limit:
@@ -522,7 +524,7 @@ def generate_population(max_capacity, dataset, fitness_function, depot_location_
         population_arr.append(processed_vehicle_chromsome)
 
         ## fitness evaluations
-        chromsome_fitness = fitness_function(processed_vehicle_chromsome, depot_location, dataset, depot_symbol)
+        chromsome_fitness = fitness_function(processed_vehicle_chromsome, depot_location, dataset)
         fitness_arr.append(chromsome_fitness)
         
     return population_arr, fitness_arr

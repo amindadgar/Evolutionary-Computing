@@ -3,7 +3,7 @@ import numpy as np
 
 EVALUATION_COUNT = 0
 
-def generate_vehicles_chromosomes(dataset, MAX_CAPACITY, depot_location_dict ,MAX_DISTANCE, vehicle_depot_constraint):
+def generate_vehicles_chromosomes(dataset, MAX_CAPACITY, depot_location_dict ,MAX_DISTANCE, vehicle_depot_constraint, all_customers=True):
     """
     Generate chromosomes of vehicles from customers count (data points are summed with 100 in order to be able to know whether the genes in chromosome )
 
@@ -40,10 +40,6 @@ def generate_vehicles_chromosomes(dataset, MAX_CAPACITY, depot_location_dict ,MA
     chromsome_generation_loop_count = 0
     while len(arr) > 0:
         chromsome_generation_loop_count += 1
-
-        ## if it couldn't make the chromsome by serving all cusomers, then break the loop
-        if chromsome_generation_loop_count > max_customer_number * 20:
-            break
 
         customer_number = sampling_function(arr, without_replacement=False)
         data = dataset[dataset.number == customer_number]
@@ -96,7 +92,20 @@ def generate_vehicles_chromosomes(dataset, MAX_CAPACITY, depot_location_dict ,MA
         if not vehicle_depot_constraint:
             depot_symbol = random.choice(list(depot_location_dict.keys()))
             depot_location = depot_location_dict[depot_symbol]
-    
+                
+        ## if it couldn't make the chromsome by serving all cusomers
+        ## then just deny the available constraint and add it
+        ## is not probable to happen always
+        if (chromsome_generation_loop_count > max_customer_number * 25):
+            if all_customers:
+                if customer_number in arr:
+                    last_X, last_Y = data.x.values[0], data.y.values[0]
+                    gene += str(data.number.values[0] + 100) 
+                    arr.remove(customer_number)
+            else:
+                break
+        
+        
     gene += depot_symbol if gene[-3:] != depot_symbol else ''
     
     return gene
@@ -111,6 +120,7 @@ def divide_vehicles(chromosome, vehicle_count, depot_location_dict, max_distance
     all_depots_symbol = [depot_symbol for depot_symbol in depot_location_dict.keys()]
 
     ## if max distance constraint was not available
+    ## probably the capicity constraint is available
     if not max_distance_constraint:
         ## division point is the depots
         ## one less vehicle count should be the division points
@@ -169,6 +179,8 @@ def divide_vehicles(chromosome, vehicle_count, depot_location_dict, max_distance
             ## start was from depot
             vehicle_chromsome = depot_symbol
             splitted_chromsomes_arr = chromosome.split(depot_symbol)
+            ## sort based on the length (length divided by 3 can be assumed the customer count here!)
+            splitted_chromsomes_arr = sorted(splitted_chromsomes_arr, key=len, reverse=True)
             ## for splitted chromosome
             for splitted_chromosome in splitted_chromsomes_arr:
                 ## if it wasn't empty string
@@ -176,7 +188,8 @@ def divide_vehicles(chromosome, vehicle_count, depot_location_dict, max_distance
                     vehicle_chromsome += splitted_chromosome + depot_symbol
                     vehicle_no += 1
                     ## if we did not reached the limit of vehicles
-                    if vehicle_no != vehicle_count:
+                    ## if vehicle count was None, then we don't have any limit, so use another vehicle to serve customers
+                    if (vehicle_no != vehicle_count) or (vehicle_count is None):
                         vehicle_chromsome += '|'
                     ## if we reached the number of vehicles in the chromosome
                     else:
@@ -391,22 +404,26 @@ def evaluate_fitness_vehicle_count(chromosome, DEPOT_LOCATION, dataset, depot_sy
 
     vehicle_count = chromosome.count('|') + 1
 
-    fitness = vehicle_count
+    # fitness = vehicle_count
 
-    ## if all customers were not served then the chromsome is not applicable and put a high value representing bad fitness
-    chromsome_customer_count = len(chromosome.replace('|', '').replace(depot_symbol, '')) / 3 
-    if chromsome_customer_count != customers_count:
-        # fitness = 9999999
-        ## minimization was our goal, so 1 is divided by (customers_count / chromsome_customer_count)
-        fitness = vehicle_count + (customers_count / chromsome_customer_count)
-    else:
-        ## the distance for each vehicle
-        for chromsome_vehicle in chromosome.split('|'):
-            distance_gone = evaluate_distance_fitness(chromsome_vehicle, DEPOT_LOCATION, dataset, depot_symbol)
+    ## to measure if more distances has been gone 
+    distance_over = 0
+    ## the distance for each vehicle
+    for chromsome_vehicle in chromosome.split('|'):
+        distance_gone = evaluate_distance_fitness(chromsome_vehicle, DEPOT_LOCATION, dataset, depot_symbol)
+        
+        ## sum the more distances over the limit
+        if distance_gone > max_distance_limit:
+            distance_over += distance_gone - max_distance_limit
+    
+    ## find the mean of the distances over the limit
+    mean_distances_over = distance_over / vehicle_count
 
-            ## if distance_gone was more than limit, then use the fitness_value as unapplicable (a max value in minimization problem) 
-            if distance_gone > max_distance_limit:
-                fitness = 9999999
+    ## to make it as a float value
+    mean_distances_over = mean_distances_over / max_distance_limit
+
+    ## we can after find out how many kilometers more than limit has been gone by the floating value  
+    fitness = vehicle_count + mean_distances_over
 
     ## bringing the evaluation count back to original
     EVALUATION_COUNT = eval_count 
@@ -414,7 +431,7 @@ def evaluate_fitness_vehicle_count(chromosome, DEPOT_LOCATION, dataset, depot_sy
     return fitness
 
 
-def generate_population(max_capacity, dataset, fitness_function, depot_location_dict, pop_count = 10, vehicle_count=6, max_distance=None, vehicle_depot_constraint=True):
+def generate_population(max_capacity, dataset, fitness_function, depot_location_dict, pop_count = 10, vehicle_count=6, max_distance=None, vehicle_depot_constraint=True, all_customers=True):
     """
     generate the population of the problem
 
@@ -457,14 +474,7 @@ def generate_population(max_capacity, dataset, fitness_function, depot_location_
     for _ in range(pop_count):
         
         ## just make chromsomes with depot symbols
-        chromsome = generate_vehicles_chromosomes(dataset, max_capacity, depot_location_dict, max_distance, vehicle_depot_constraint)
-        
-        ## if vehicle count was None, generate numebr of vehicles randomly
-        if vehicle_count is None:
-            ## the maximum vehicle is set as 60 here
-            vehicle_count_value = random.randint(5, 100)
-        else:
-            vehicle_count_value = vehicle_count
+        chromsome = generate_vehicles_chromosomes(dataset, max_capacity, depot_location_dict, max_distance, vehicle_depot_constraint, all_customers)
         
         ## to find the location and the symbol of the depot
         depot_symbol = find_depot_using(chromsome, list(depot_location_dict.keys()))
@@ -472,7 +482,7 @@ def generate_population(max_capacity, dataset, fitness_function, depot_location_
 
         ## divide it into different part to make it like different vehicles
         # vehicle_chromsome = divide_vehicles(chromsome, vehicle_count_value, depot_symbol, max_distance_constraint= (max_distance is not None))
-        vehicle_chromsome = divide_vehicles(chromsome, vehicle_count_value, depot_location_dict, max_distance_constraint= (max_distance is not None), vehicle_depot_constraint = vehicle_depot_constraint)
+        vehicle_chromsome = divide_vehicles(chromsome, vehicle_count, depot_location_dict, max_distance_constraint= (max_distance is not None), vehicle_depot_constraint = vehicle_depot_constraint)
 
         ## process the divisions and make sure that the start points has the depot symbol 
         processed_vehicle_chromsome = process_division_points(vehicle_chromsome, list(depot_location_dict.keys()), vehicle_depot_constraint)

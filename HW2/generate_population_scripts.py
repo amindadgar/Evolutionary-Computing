@@ -1,5 +1,6 @@
 import random
 import numpy as np
+import re
 
 EVALUATION_COUNT = 0
 
@@ -144,26 +145,55 @@ def divide_vehicles(chromosome, vehicle_count, depot_location_dict, max_distance
                 print(f"Exception: {e}, \nvehicle count: {vehicle_count}, chromosome.count(depot_symbol): {depot_count}")
                 quit()
             division_point.append(point)
-            
+        ## if the vehicle was limited to use one depot
+        # if vehicle_depot_constraint:
+        #     ## making the copy of string
+        #     vehicle_chromsome = chromosome
+
+        #     for point in division_point:
+        #         ## the process of finding point-th depot in chromsome
+        #         occurance = -1
+        #         occurance_idx = 0
+        #         while occurance < point:
+        #             ## find each depot occurance and get the minimum of it
+        #             occurances_arr = []
+        #             for depot_symbol in all_depots_symbol:
+        #                 occurance_idx = vehicle_chromsome.find(depot_symbol, occurance_idx) + 1
+        #                 occurances_arr.append(occurance_idx)
+                    
+        #             occurance_idx = min(occurances_arr)
+        #             print(occurances_arr)
+        #             occurance += 1
+                
+        #         vehicle_chromsome = vehicle_chromsome[:occurance_idx+2] + '|' + vehicle_chromsome[occurance_idx+2:]
+        # else:
+        ## a set of points that we can divide the string from
+        able_to_divide_arr = []
+
         ## making the copy of string
         vehicle_chromsome = chromosome
 
-        for point in division_point:
-            ## the process of finding point-th depot in chromsome
-            occurance = -1
-            occurance_idx = 0
-            while occurance < point:
-                ## find each depot occurance and get the minimum of it
-                occurances_arr = []
-                for depot_symbol in all_depots_symbol:
-                    occurance_idx = vehicle_chromsome.find(depot_symbol, occurance_idx) + 1
-                    occurances_arr.append(occurance_idx)
-                # occurance_idx = vehicle_chromsome.find(depot_symbol, occurance_idx) + 1
-                occurance_idx = min(occurances_arr)
-                # print(occurances)
-                occurance += 1
-            
-            vehicle_chromsome = vehicle_chromsome[:occurance_idx+2] + '|' + vehicle_chromsome[occurance_idx+2:]
+        for depot_symbol in all_depots_symbol: 
+            depot_array = [m.start() for m in re.finditer(depot_symbol.replace('(', '\(').replace(')', '\)'), vehicle_chromsome)]
+            able_to_divide_arr.extend(depot_array)
+
+        ## remove if the first and last points are in array
+        able_to_divide_arr.remove(min(able_to_divide_arr))
+        able_to_divide_arr.remove(max(able_to_divide_arr))
+
+        ## the points to divide the vehicle from
+        try:
+            points_to_divide = random.sample(able_to_divide_arr, vehicle_count)
+            points_to_divide = sorted(points_to_divide)
+        except ValueError as error:
+            ## if less than vehicle count depots available, then just stick to thoes depots available
+            points_to_divide = sorted(able_to_divide_arr)
+        
+        ## adding a symbol to string would change the places of each point
+        ## so by adding each symbol we increase the index value for each
+        for idx, point in enumerate(points_to_divide):
+            vehicle_chromsome = vehicle_chromsome[:point+idx+3] + '|' + vehicle_chromsome[point+idx+3:]                
+
     ## if the constraint was the distance
     ## just partition the chromosome using the depots symbol  
     else:
@@ -308,7 +338,8 @@ def evaluate_distance_fitness(chromsome, DEPOT_LOCATION, dataset, depot_symbol):
     depot_x_loc, depot_y_loc = DEPOT_LOCATION
 
     distance = 0
-    for ch in chromsome.split(depot_symbol):
+
+    for ch in re.split('\(\d+\)', chromsome):
         if ch and ch != '|':
             ## start is always from a depot
             last_loc_X, last_loc_Y = DEPOT_LOCATION

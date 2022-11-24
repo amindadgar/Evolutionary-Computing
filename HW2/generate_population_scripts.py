@@ -3,13 +3,14 @@ import numpy as np
 
 EVALUATION_COUNT = 0
 
-def generate_vehicles_chromosomes(dataset, MAX_CAPACITY, depot_location_dict ,MAX_DISTANCE=None):
+def generate_vehicles_chromosomes(dataset, MAX_CAPACITY, depot_location_dict ,MAX_DISTANCE, vehicle_depot_constraint):
     """
     Generate chromosomes of vehicles from customers count (data points are summed with 100 in order to be able to know whether the genes in chromosome )
 
     """
     ## if the depots were more than one
     ## choose randomly from one of it
+    ## if the vehicle_depot_constraint was True, don't try to generate more in the loop
     depot_symbol = random.choice(list(depot_location_dict.keys()))
     depot_location = depot_location_dict[depot_symbol]
 
@@ -48,8 +49,6 @@ def generate_vehicles_chromosomes(dataset, MAX_CAPACITY, depot_location_dict ,MA
         data = dataset[dataset.number == customer_number]
         capacity += data.demand.values[0]
         
-        ## TODO: for multiple depot, check the previous assigned depot
-        ## if no depot before, then randomly select one
         distance_to_depo = distance + abs(last_X - depot_location[0]) + abs(last_Y - depot_location[1])
 
         distance += abs(data.x.values[0] - last_X) + abs(data.y.values[0] - last_Y)
@@ -64,9 +63,6 @@ def generate_vehicles_chromosomes(dataset, MAX_CAPACITY, depot_location_dict ,MA
             ## reset the distance that the vehicle gone
             distance = 0
 
-            ## bring back the customer to our array
-            ## since we haven't served him
-            # arr.append(data.number.values[0])
             last_X, last_Y = depot_location
 
         ## if going back to depot become over the limit, remove the last customer served from schedule and instead of that customer go back to depot  
@@ -88,33 +84,39 @@ def generate_vehicles_chromosomes(dataset, MAX_CAPACITY, depot_location_dict ,MA
             ## reset the capacity or the distance
             capacity = 0
 
-            ## bring back the customer to our array
-            ## since we haven't served him
-            # arr.append(data.number.values[0])
         ## if everything were normal and we could afford the limitations 
         else:
             last_X, last_Y = data.x.values[0], data.y.values[0]
             gene += str(data.number.values[0] + 100) 
             ## if the customer was added to the chromsome, then remove it from sampling array
             arr.remove(customer_number)
+        
+        ## if there was not constraint on getting back to the same depot
+        ## then simply generate another
+        if not vehicle_depot_constraint:
+            depot_symbol = random.choice(list(depot_location_dict.keys()))
+            depot_location = depot_location_dict[depot_symbol]
     
     gene += depot_symbol if gene[-3:] != depot_symbol else ''
     
     return gene
 
-def divide_vehicles(chromosome, vehicle_count, depot_symbol, max_distance_constraint=False):
+def divide_vehicles(chromosome, vehicle_count, depot_location_dict, max_distance_constraint, vehicle_depot_constraint):
     """
     add the `|` as a division for a chromsome to make different vehicles
     `max_distance_constraint` is a boolean variable which says we have the max_distance constraint or not
     """
     ## initialize the variable
     vehicle_chromsome = None
+    all_depots_symbol = [depot_symbol for depot_symbol in depot_location_dict.keys()]
+
     ## if max distance constraint was not available
     if not max_distance_constraint:
         ## division point is the depots
         ## one less vehicle count should be the division points
-
-        depot_count = chromosome.count(depot_symbol)
+        
+        each_depot_counts = [chromosome.count(depot_symbol) for depot_symbol in all_depots_symbol]
+        depot_count = sum(each_depot_counts)
         sample_arr = np.linspace(1, depot_count - 2, depot_count - 1, dtype=int )
         sample_arr = list(sample_arr)
         division_point = []
@@ -122,7 +124,6 @@ def divide_vehicles(chromosome, vehicle_count, depot_symbol, max_distance_constr
         condition_iteration = vehicle_count
         if vehicle_count > len(sample_arr):
             condition_iteration = len(sample_arr)
-            print(f"vehicles are more!, {vehicle_count}, {len(sample_arr)}")
             
         # for _ in range(vehicle_count - 1):
         for _ in range(condition_iteration):
@@ -142,31 +143,72 @@ def divide_vehicles(chromosome, vehicle_count, depot_symbol, max_distance_constr
             occurance = -1
             occurance_idx = 0
             while occurance < point:
-                occurance_idx = vehicle_chromsome.find(depot_symbol, occurance_idx) + 1
+                ## find each depot occurance and get the minimum of it
+                occurances_arr = []
+                for depot_symbol in all_depots_symbol:
+                    occurance_idx = vehicle_chromsome.find(depot_symbol, occurance_idx) + 1
+                    occurances_arr.append(occurance_idx)
+                # occurance_idx = vehicle_chromsome.find(depot_symbol, occurance_idx) + 1
+                occurance_idx = min(occurances_arr)
+                # print(occurances)
                 occurance += 1
             
             vehicle_chromsome = vehicle_chromsome[:occurance_idx+2] + '|' + vehicle_chromsome[occurance_idx+2:]
     ## if the constraint was the distance
     ## just partition the chromosome using the depots symbol  
     else:
-        ## the index for vehicle
-        ## to check whether we reached the limit of vehicles or not
-        vehicle_no = 0
-        ## start was from depot
-        vehicle_chromsome = depot_symbol
-        splitted_chromsomes_arr = chromosome.split(depot_symbol)
-        ## for splitted chromosom
-        for splitted_chromosome in splitted_chromsomes_arr:
-            ## if it wasn't empty string
-            if splitted_chromosome:
-                vehicle_chromsome += splitted_chromosome + depot_symbol
-                vehicle_no += 1
-                ## if we did not reached the limit of vehicles
-                if vehicle_no != vehicle_count:
-                    vehicle_chromsome += '|'
-                ## if we reached the number of vehicles in the chromosome
+        ## if the vehicle was limited to one depot
+        if vehicle_depot_constraint:
+
+            ## to find the location and the symbol of the depot
+            depot_symbol = find_depot_using(chromosome, list(depot_location_dict.keys()))
+
+            ## the index for vehicle
+            ## to check whether we reached the limit of vehicles or not
+            vehicle_no = 0
+            ## start was from depot
+            vehicle_chromsome = depot_symbol
+            splitted_chromsomes_arr = chromosome.split(depot_symbol)
+            ## for splitted chromosome
+            for splitted_chromosome in splitted_chromsomes_arr:
+                ## if it wasn't empty string
+                if splitted_chromosome:
+                    vehicle_chromsome += splitted_chromosome + depot_symbol
+                    vehicle_no += 1
+                    ## if we did not reached the limit of vehicles
+                    if vehicle_no != vehicle_count:
+                        vehicle_chromsome += '|'
+                    ## if we reached the number of vehicles in the chromosome
+                    else:
+                        break
+        ## else, there wasn't a constraint on using one depot
+        else:
+            ## split the array based on different depot symbols
+            splitted_chromsomes_arr = []
+            vehicle_chromsome = ''
+            depots_arr = []
+            for idx in range(3, len(chromosome), 3):
+                if chromosome[idx-3:idx] not in all_depots_symbol:
+                    vehicle_chromsome += chromosome[idx-3:idx]
                 else:
-                    break
+                    splitted_chromsomes_arr.append(vehicle_chromsome)
+                    ## reset the variable
+                    vehicle_chromsome = ''
+                    ## save what the depots order was
+                    depots_arr.append(chromosome[idx-3:idx])
+
+            ## for splitted chromosome
+            for idx, splitted_chromosome in enumerate(splitted_chromsomes_arr):
+                ## if it wasn't empty string
+                if splitted_chromosome:
+                    vehicle_chromsome += splitted_chromosome + depots_arr[idx]
+                    vehicle_no += 1
+                    ## if we did not reached the limit of vehicles
+                    if vehicle_no != vehicle_count:
+                        vehicle_chromsome += '|'
+                    ## if we reached the number of vehicles in the chromosome
+                    else:
+                        break
 
     return vehicle_chromsome
 
@@ -195,29 +237,50 @@ def find_depot_using(chromosome, depot_symbols_arr):
         ## if it was available, then put the depot symbol
         if depot_symbol_availability != -1:
             depot_count += 1
-            if depot_count > 1:
-                raise ValueError(f"Chromsome is using more than one depot!, the last found depot is: {depot}")
+            # if depot_count > 1:
+            #     raise ValueError(f"Chromsome is using more than one depot!, the last found depot is: {depot}")
             depot_symbol = depot
     
     return depot_symbol
 
-def process_division_points(vehicle_chromosome, depot_symbol):
+def process_division_points(vehicle_chromosome, depot_symbol_arr, vehicle_depot_constraint):
     """
     Add the depot symbol after the division points
     """    
-    processed_vehicle_chromsome = vehicle_chromosome
+    if vehicle_depot_constraint:
+        processed_vehicle_chromsome = vehicle_chromosome
+        depot_symbol = find_depot_using(processed_vehicle_chromsome, depot_symbol_arr)
 
-    division_counts = vehicle_chromosome.count('|')
+        division_counts = vehicle_chromosome.count('|')
 
-    for idx in range(division_counts):
-        occurance = -1
+        # for idx in range(division_counts):
+        #     occurance = -1
+        #     occurance_idx = 0
+        #     while occurance < idx:
+        #         occurance_idx = processed_vehicle_chromsome.find('|', occurance_idx) + 1
+        #         occurance += 1
+            # processed_vehicle_chromsome = processed_vehicle_chromsome[:occurance_idx] + depot_symbol + processed_vehicle_chromsome[occurance_idx:]
+        
+        occurance = 0
         occurance_idx = 0
-        while occurance < idx:
+        while occurance < division_counts:
             occurance_idx = processed_vehicle_chromsome.find('|', occurance_idx) + 1
             occurance += 1
-        
-        processed_vehicle_chromsome = processed_vehicle_chromsome[:occurance_idx] + depot_symbol + processed_vehicle_chromsome[occurance_idx:]
-    
+
+            processed_vehicle_chromsome = processed_vehicle_chromsome[:occurance_idx] + depot_symbol + processed_vehicle_chromsome[occurance_idx:]
+    else:
+        processed_vehicle_chromsome = ''
+        chromsome_arr = vehicle_chromosome.split('|')
+        for idx in range(1, len(chromsome_arr)):
+            ## if the array index was not empty
+            if chromsome_arr[idx]:
+                if chromsome_arr[idx - 1][-3:] in depot_symbol_arr:
+                    last_visited_depot = chromsome_arr[idx - 1][-3:]
+                    processed_vehicle_chromsome += last_visited_depot + chromsome_arr[idx] + '|'
+                else:
+                    processed_vehicle_chromsome += chromsome_arr[idx]
+
+
     return processed_vehicle_chromsome
 
 
@@ -228,7 +291,7 @@ def evaluate_distance_fitness(chromsome, DEPOT_LOCATION, dataset, depot_symbol):
     """
     global EVALUATION_COUNT
     EVALUATION_COUNT += 1
-
+    # print(chromsome)
     depot_x_loc, depot_y_loc = DEPOT_LOCATION
 
     distance = 0
@@ -394,7 +457,7 @@ def generate_population(max_capacity, dataset, fitness_function, depot_location_
     for _ in range(pop_count):
         
         ## just make chromsomes with depot symbols
-        chromsome = generate_vehicles_chromosomes(dataset, max_capacity, depot_location_dict, max_distance)
+        chromsome = generate_vehicles_chromosomes(dataset, max_capacity, depot_location_dict, max_distance, vehicle_depot_constraint)
         
         ## if vehicle count was None, generate numebr of vehicles randomly
         if vehicle_count is None:
@@ -408,9 +471,11 @@ def generate_population(max_capacity, dataset, fitness_function, depot_location_
         depot_location = depot_location_dict[depot_symbol]
 
         ## divide it into different part to make it like different vehicles
-        vehicle_chromsome = divide_vehicles(chromsome, vehicle_count_value, depot_symbol, max_distance_constraint= (max_distance is not None))
+        # vehicle_chromsome = divide_vehicles(chromsome, vehicle_count_value, depot_symbol, max_distance_constraint= (max_distance is not None))
+        vehicle_chromsome = divide_vehicles(chromsome, vehicle_count_value, depot_location_dict, max_distance_constraint= (max_distance is not None), vehicle_depot_constraint = vehicle_depot_constraint)
+
         ## process the divisions and make sure that the start points has the depot symbol 
-        processed_vehicle_chromsome = process_division_points(vehicle_chromsome, depot_symbol)
+        processed_vehicle_chromsome = process_division_points(vehicle_chromsome, list(depot_location_dict.keys()), vehicle_depot_constraint)
         
         ## add to population array
         population_arr.append(processed_vehicle_chromsome)

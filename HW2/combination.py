@@ -4,7 +4,7 @@ Mutation and Cross-over are applied here
 """
 
 import random
-from generate_population_scripts import without_replacement_sampling, process_division_points, divide_vehicles
+from generate_population_scripts import sampling_function, process_division_points, divide_vehicles
 import numpy as np
 
 
@@ -19,13 +19,13 @@ def split_string_step(string, step):
             string_arr.append(string[i-step:i])
     return string_arr
 
-def remove_symbols_chromsome(chromsome, depot_symbols):
+def remove_symbols_chromsome(chromsome, depot_symbols_arr):
     """
     remove all the division and depot symbols in the chromsome
     """
     raw_chromsome = chromsome.replace('|', '')
 
-    for symbol in depot_symbols:
+    for symbol in depot_symbols_arr:
         raw_chromsome = raw_chromsome.replace(symbol, '')
 
     return raw_chromsome
@@ -137,50 +137,59 @@ def get_chromosome_break_point(chromosome=None, step=3, max_index=None):
     ## the break point should not be the first or the last points
     ## create an array and randomly sample from it
     if max_index is None and chromosome is not None:
-        arr = np.arange(0 + step, len(chromosome) - step , step)
+        arr = np.arange(0, len(chromosome) +1, step)
+        ## if the produced array is empty
+        ## we manually add an element to it (we know the break point will be same as step!)
+        if len(arr) == 0:
+            arr = [step]
+
     elif max_index is not None:
-        arr = np.arange(0 + step, max_index , step)
+        arr = np.arange(0, max_index , step)
     else:
         raise ValueError("Both chromsome and max_index should not be None!")
     
     ## randomly sampling
-    break_point = without_replacement_sampling(list(arr))
+    break_point = sampling_function(list(arr))
     break_point = break_point // step
 
     return break_point
 
-def repair_chromsome(raw_chromsome, dataset, max_capacity, depot_symbol, vehicle_count, max_distance, depot_location):
+def repair_chromsome(raw_chromsome, dataset, max_capacity, depot_location_dict, vehicle_count, max_distance, vehicle_depot_constraint):
     """
     repair the chromsome by adding the depot symbol and division points for the vehicles
     """
+    depot_symbol = random.choice(list(depot_location_dict.keys()))
+    depot_location = depot_location_dict[depot_symbol]
+
     chromosome = None
     if max_distance is None:
         chromosome = process_depots_capacity_based(dataset, raw_chromsome, max_capacity, depot_symbol)
-        chromosome = divide_vehicles(chromosome, vehicle_count, depot_symbol)
+        chromosome = divide_vehicles(chromosome, vehicle_count, depot_location_dict, max_distance_constraint= (max_distance is not None), vehicle_depot_constraint = vehicle_depot_constraint )
     else:
         chromosome = process_depots_distance_based(dataset, raw_chromsome, max_distance, depot_symbol, depot_location)
-        chromosome = divide_vehicles(chromosome, vehicle_count, depot_symbol, max_distance_constraint=True)
-    
-    chromosome = process_division_points(chromosome, depot_symbol)
+        chromosome = divide_vehicles(chromosome, vehicle_count, depot_location_dict, max_distance_constraint= True, vehicle_depot_constraint = vehicle_depot_constraint )
+
+    # chromosome = process_division_points(chromosome, depot_symbol, vehicle_depot_constraint)
+    chromosome = process_division_points(chromosome, list(depot_location_dict.keys()), vehicle_depot_constraint)
+
+
 
     return chromosome
 
 
-def cut_and_crossfill(chromosome1, chromosome2, dataset, max_capacity, max_distance, depot_location, depot_symbol=['(1)']):
+def cut_and_crossfill(chromosome1, chromosome2, dataset, max_capacity, max_distance, depot_location_dict, vehicle_depot_constraint, vehicle_count):
     """
     cut and crossfill cross-over
 
     at the end repair the chromsome with max_capacity
     """
-    ## find the vehicle count
-    vehicle_count = chromosome1.count('|') + 1
 
     ## find the chromsome with minimum length and break it
     chromosome_to_break = chromosome1 if len(chromosome1) < len(chromosome2) else chromosome2
     second_chromsome = chromosome1 if len(chromosome1) > len(chromosome2) else chromosome2
     
-    chromosome = remove_symbols_chromsome(chromosome_to_break, depot_symbol)
-    second_chromsome = remove_symbols_chromsome(second_chromsome, depot_symbol)
+    chromosome = remove_symbols_chromsome(chromosome_to_break, list(depot_location_dict.keys()))
+    second_chromsome = remove_symbols_chromsome(second_chromsome, list(depot_location_dict.keys()))
     
     ## break point of the chromsomes
     break_point = get_chromosome_break_point(chromosome=None, step=3, max_index=min(len(chromosome), len(second_chromsome)) - 3)
@@ -201,15 +210,9 @@ def cut_and_crossfill(chromosome1, chromosome2, dataset, max_capacity, max_dista
             offspring2.append(gene)
 
     ## repairment
-    random_depot = random.sample(depot_symbol, 1)[0]
-    # random_depot_location = depot_location[list(depot_symbol).index(random_depot)]
-    random_depot_location = depot_location
-    offspring1 = repair_chromsome(offspring1, dataset, max_capacity, random_depot, vehicle_count, max_distance, random_depot_location)
+    offspring1 = repair_chromsome(offspring1, dataset, max_capacity, depot_location_dict, vehicle_count, max_distance, vehicle_depot_constraint)
 
-    random_depot = random.sample(depot_symbol, 1)[0]
-    # random_depot_location = depot_location[list(depot_symbol).index(random_depot)]
-    random_depot_location = depot_location
-    offspring2 = repair_chromsome(offspring2, dataset, max_capacity, random_depot, vehicle_count, max_distance, random_depot_location)
+    offspring2 = repair_chromsome(offspring2, dataset, max_capacity, depot_location_dict, vehicle_count, max_distance, vehicle_depot_constraint)
 
 
     return offspring1, offspring2
@@ -228,12 +231,12 @@ def find_two_mutation_point(chromosome):
 
     return mutation_point1, mutation_point2
 
-def mutation_inverse(chromosome, max_capacity, dataset, depot_location, max_distance, depot_symbol=['(1)']):
+def mutation_inverse(chromosome, max_capacity, dataset, depot_location_dict, max_distance, vehicle_depot_constraint, vehicle_count):
     """
     inverse mutation for the genes of a chromsome, returns the mutated chromsome
     """
-    vehicle_count = chromosome.count('|') + 1
-    raw_chromsome = remove_symbols_chromsome(chromosome, depot_symbol)
+
+    raw_chromsome = remove_symbols_chromsome(chromosome, depot_location_dict)
     
     mutation_point1, mutation_point2 = find_two_mutation_point(raw_chromsome)
 
@@ -241,19 +244,16 @@ def mutation_inverse(chromosome, max_capacity, dataset, depot_location, max_dist
 
     inversed_chromosome_arr = raw_chromsome_arr[:mutation_point1] + raw_chromsome_arr[mutation_point1:mutation_point2][::-1] + raw_chromsome_arr[mutation_point2:]
 
-    random_depot = random.sample(depot_symbol, 1)[0]
-#     random_depot_location = depot_location[list(depot_symbol).index(random_depot)]
-    random_depot_location = depot_location
-    repaired_inversed_chromosome = repair_chromsome(inversed_chromosome_arr, dataset, max_capacity, random_depot, vehicle_count, max_distance, random_depot_location)
+    repaired_inversed_chromosome = repair_chromsome(inversed_chromosome_arr, dataset, max_capacity, depot_location_dict, vehicle_count, max_distance, vehicle_depot_constraint)
+
 
     return repaired_inversed_chromosome
 
-def mutation_scramble(chromosome, max_capacity, dataset, depot_location, max_distance, depot_symbol=['(1)']):
+def mutation_scramble(chromosome, max_capacity, dataset, depot_location_dict, max_distance, vehicle_depot_constraint, vehicle_count):
     """
     scramble mutation for the genes of a chromsome, returns the mutated chromsome
     """
-    vehicle_count = chromosome.count('|') + 1
-    raw_chromsome = remove_symbols_chromsome(chromosome, depot_symbol)
+    raw_chromsome = remove_symbols_chromsome(chromosome, list(depot_location_dict.keys()))
 
     mutation_point1, mutation_point2 = find_two_mutation_point(raw_chromsome)
 
@@ -265,14 +265,12 @@ def mutation_scramble(chromosome, max_capacity, dataset, depot_location, max_dis
     chromsome_scrambled_arr = raw_chromsome_arr[:mutation_point1]
 
     while len(to_scramble_arr) != 0:
-        customer = without_replacement_sampling(to_scramble_arr)
+        customer = sampling_function(to_scramble_arr)
         chromsome_scrambled_arr += [customer]
     
     chromsome_scrambled_arr += raw_chromsome_arr[mutation_point2:]
 
-    random_depot = random.sample(depot_symbol, 1)[0]
-#     random_depot_location = depot_location[list(depot_symbol).index(random_depot)]
-    random_depot_location = depot_location
-    mutated_chromosome = repair_chromsome(chromsome_scrambled_arr, dataset, max_capacity, random_depot, vehicle_count, max_distance, random_depot_location)
+    mutated_chromosome = repair_chromsome(chromsome_scrambled_arr, dataset, max_capacity, depot_location_dict, vehicle_count, max_distance, vehicle_depot_constraint)
+
 
     return mutated_chromosome

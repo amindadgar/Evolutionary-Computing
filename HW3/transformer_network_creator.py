@@ -15,8 +15,8 @@ class TransformerBlock(Layer):
         self.layernorm = LayerNormalization(epsilon=1e-6)
         
         ## the created_model parameter will be None at first, because we've not created a model yet before first feed_forward layer
-        self.feed_forward1, self.layernorm1 = self.__create_feed_forward(d_model, feed_forward_layer1)
-        self.feed_forward2, self.layernorm2 = self.__create_feed_forward(d_model, feed_forward_layer2)
+        self.feedforward1, self.layernorm1 = self.__create_feed_forward(d_model, feed_forward_layer1)
+        self.feedforward2, self.layernorm2 = self.__create_feed_forward(d_model, feed_forward_layer2)
         
 
     def __create_feed_forward(self, d_model, feed_forward_configs):
@@ -51,19 +51,19 @@ class TransformerBlock(Layer):
         attn_output = self.att(inputs, inputs)
         out1 = self.layernorm(inputs + attn_output)
         
-        if (self.feed_forward1 is not None) and (self.feed_forward2 is not None):
+        if (self.feedforward1 is not None) and (self.feedforward2 is not None):
             out2 = self.feedforward1(out1)
             feedforward_output = self.feedforward2(out2)
             if self.layernorm1:
                 feedforward_output = self.layernorm(out1 + feedforward_output)
         
-        elif (self.feed_forward1 is None) and (self.feed_forward2 is not None):
-            feedforward_output = self.feed_forward2(out1)
+        elif (self.feedforward1 is None) and (self.feedforward2 is not None):
+            feedforward_output = self.feedforward2(out1)
             if self.layernorm2:
                 feedforward_output = self.layernorm(out1 + feedforward_output)
 
-        elif (self.feed_forward1 is not None) and (self.feed_forward2 is None):
-            feedforward_output = self.feed_forward1(out1)
+        elif (self.feedforward1 is not None) and (self.feedforward2 is None):
+            feedforward_output = self.feedforward1(out1)
             if self.layernorm1:
                 feedforward_output = self.layernorm(out1 + feedforward_output)
         else:

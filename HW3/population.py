@@ -12,7 +12,7 @@ def generate_population(pop_size=10):
     chromsomes = []
 
     for i in range(pop_size):
-        genes_arr = randint(0, 10, 16)
+        genes_arr = randint(0, 10, 31)
 
         ## process it to make string
         genes = str(genes_arr).replace(' ', '').replace('[','').replace(']', '') 

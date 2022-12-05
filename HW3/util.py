@@ -1,11 +1,11 @@
-def convert_genotype_to_phenotype_values(chromsome):
+def convert_genotype_to_phenotype_values(chromosome):
     """
-    Converts the chromsome from genotypic space into phenotypic values
+    Converts the chromosome from genotypic space into phenotypic values
 
     Parameters:
     ------------
-    chromsome : string
-        A chromsome in genotypic space
+    chromosome : string
+        A chromosome in genotypic space
     
     Returns:
     ---------
@@ -33,28 +33,28 @@ def convert_genotype_to_phenotype_values(chromsome):
                 a value between 0 to 0.9
     """
 
-    d_model_char, transformer_level1_str, transformer_level2_str, transformer_level3_str, ffn_layer_architecture_str = map_hyperparameters(chromsome)
+    d_model_char, transformer_level1_str, transformer_level2_str, transformer_level3_str, ffn_layer_architecture_str = map_hyperparameters(chromosome)
 
     ## convert to actual values
     d_model = get_model_dimensionality(d_model_char)
-    transformer_level1 = get_transformer_hyperparameters(transformer_level1_str)
-    transformer_level2 = get_transformer_hyperparameters(transformer_level2_str)
-    transformer_level3 = get_transformer_hyperparameters(transformer_level3_str)
+    transformer_level1 = get_transformers_hyperparameters(transformer_level1_str)
+    transformer_level2 = get_transformers_hyperparameters(transformer_level2_str)
+    transformer_level3 = get_transformers_hyperparameters(transformer_level3_str)
     ffn_layer_architecture = get_feed_forward_hyperparameters(ffn_layer_architecture_str)
 
 
     return d_model, transformer_level1, transformer_level2, transformer_level3, ffn_layer_architecture
 
 
-def map_hyperparameters(chromsome):
+def map_hyperparameters(chromosome):
     """
-    map the chromsome to hyperparameters of the problem
-    exactly it divide the chromsome into different parts
+    map the chromosome to hyperparameters of the problem
+    exactly it divide the chromosome into different parts
 
     Parameters:
     ------------
-    chromsome : string
-        the chromsome in integer string
+    chromosome : string
+        the chromosome in integer string
     
     Returns:
     ---------
@@ -80,19 +80,19 @@ def map_hyperparameters(chromsome):
     
     """
     ## model dimensionality
-    d_model = chromsome[0]
+    d_model = chromosome[0]
 
     ## first transformer layer configuration
-    transformer_level1 = chromsome[1:5]
+    transformer_level1 = chromosome[1:10]
 
     ## second transformer layers configuration
-    transformer_level2 = chromsome[5:9]
+    transformer_level2 = chromosome[10:19]
 
     ## third transformer layers configuration
-    transformer_level3 = chromsome[9:13]
+    transformer_level3 = chromosome[19:28]
 
     ## the FFN, last layer configuration
-    ffn_layer_architecture = chromsome[13:16]
+    ffn_layer_architecture = chromosome[28:31]
     
 
     return d_model, transformer_level1, transformer_level2, transformer_level3, ffn_layer_architecture
@@ -106,7 +106,7 @@ def map_with_values(gene, possible_value_count):
     Parameters:
     ------------
     gene : character
-        the gene of the chromsome
+        the gene of the chromosome
     possible_value_count : int
         an integer value between 0 to 9
     """
@@ -170,21 +170,25 @@ def get_feed_forward_hyperparameters(genes):
     Possible_attention_functions = ['R', 'S']
     Possible_dropouts = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
 
-    ## get the index of the value
-    neuron_idx = map_with_values(genes[0], 4)
-    attention_function_idx = map_with_values(genes[1], 2)
-    dropout_idx = map_with_values(genes[2], 10)
+    ## if the FFN did not have no hidden layers (meaning it has hidden layers )
+    if genes[0:3] != '000':
+        ## get the index of the value
+        neuron_idx = map_with_values(genes[0], 4)
+        attention_function_idx = map_with_values(genes[1], 2)
+        dropout_idx = map_with_values(genes[2], 10)
 
-    ## get the exact value
-    neuron_count = Possible_neuron_values[neuron_idx]
-    attention_function_type = Possible_attention_functions[attention_function_idx]
-    dropout_probability = Possible_dropouts[dropout_idx]
+        ## get the exact value
+        neuron_count = Possible_neuron_values[neuron_idx]
+        attention_function_type = Possible_attention_functions[attention_function_idx]
+        dropout_probability = Possible_dropouts[dropout_idx]
+    else:
+        neuron_count, attention_function_type, dropout_probability = (None, None, None)
 
     return neuron_count, attention_function_type, dropout_probability  
 
-def get_transformer_hyperparameters(genes):
+def get_transformers_hyperparameters(genes):
     """
-    Get the transformer layer hyperparameters from a 4 character string
+    Get the transformer layer hyperparameters from a 9 character string
 
     Parameters:
     ------------
@@ -198,6 +202,42 @@ def get_transformer_hyperparameters(genes):
 
     Returns:
     ---------
+    feed_forward_layer1 : tuple
+        a tuple for the first layer in the feed_forward of the transformer
+    feed_forward_layer2 : tuple
+        a tuple for the second layer in the feed_forward of the transformer
+    attention_head_count : int
+        an integer value representing values 1, 2, 4, or 8
+    """
+    if genes[0:4] != '0000':
+        neuron_count1, attention_function_type1, dropout_probability1, normalization_layer1 = get_one_transformer_hyperparameters(genes[0:3], genes[3])
+    else:
+         neuron_count1, attention_function_type1, dropout_probability1, normalization_layer1 = (None, None, None, None)
+
+    if genes[4:7] != '0000':
+        neuron_count2, attention_function_type2, dropout_probability2, normalization_layer2 = get_one_transformer_hyperparameters(genes[4:7], genes[7])
+    else:
+        neuron_count2, attention_function_type2, dropout_probability2, normalization_layer2 = (None, None, None, None)
+
+    Possible_attention_head_values = [1, 2, 4, 8]
+    attention_head_idx = map_with_values(genes[8], 4)
+    attention_head_count = Possible_attention_head_values[attention_head_idx]
+
+    return (neuron_count1, attention_function_type1, dropout_probability1, normalization_layer1), (neuron_count2, attention_function_type2, dropout_probability2, normalization_layer2), attention_head_count
+
+def get_one_transformer_hyperparameters(feed_forward_gene, normalization_layer_gene):
+    """
+    extract the information for one transformer layer
+
+    Parameters:
+    ------------
+    feed_forward_gene : string
+        3 character string, representing the feed forward layer hyperparameters in the chromosome
+    normalization_layer_gene : char
+        1 character, representing the availability or non-availability of the normalization layer
+
+    Returns:
+    ----------
     neuron_count : int
         the actual neuron count, either 5, 10, 20, or 30
     attention_function_type : character
@@ -205,19 +245,20 @@ def get_transformer_hyperparameters(genes):
             - `R` representing `ReLU`
             - And `S` representing `Sigmoid`
     dropout_probability : float
-        a float value representing 0, 0.1, 0.2, ..., or 0.9
-    attention_head_count : int
-        an integer value representing values 1, 2, 4, or 8
+        a float value representing 0, 0.1, 0.2, ..., 0.9
+    normalization_layer : bool
+        a boolean representing the availability (`True`) or non-availability (`False`) of the normalization layer
+
     """
-
-    neuron_count, attention_function_type, dropout_probability = get_feed_forward_hyperparameters(genes[0:3])
+    neuron_count, attention_function_type, dropout_probability = get_feed_forward_hyperparameters(feed_forward_gene)
     
+    ## availability or not are represented as True and False
+    Possible_normalization_values = [True, False]
+    normalization_layer_idx = map_with_values(normalization_layer_gene, 2)
+    normalization_layer = Possible_normalization_values[normalization_layer_idx]
 
-    Possible_attention_head_values = [1, 2, 4, 8]
-    attention_head_idx = map_with_values(genes[3], 4)
-    attention_head_count = Possible_attention_head_values[attention_head_idx]
+    return neuron_count, attention_function_type, dropout_probability, normalization_layer
 
-    return neuron_count, attention_function_type, dropout_probability, attention_head_count
 
 def get_model_dimensionality(gene):
     """
@@ -226,7 +267,7 @@ def get_model_dimensionality(gene):
     Parameters:
     ------------
     gene : character
-        one bit character representing the model dimensionality extracted from a chromsome
+        one bit character representing the model dimensionality extracted from a chromosome
     
     Returns:
     ----------

@@ -183,7 +183,9 @@ def fitness_evaluate(phenotype_chromosome, eval_count=5):
     
     return average_acc
 
-def save_chromosome_with_fitness(chromosome, fitness, file_name='results.txt'):
+# def save_chromosome_with_fitness(chromosome, fitness, file_name='results.txt'):
+def save_chromosome_with_fitness(chromosome, fitness, file_name='/content/gdrive/EC Project/result.txt'):
+
 
     with open(file_name, mode='a') as file:
         chromsome_str = str(chromosome)

@@ -100,7 +100,7 @@ def load_data():
     return x_train, x_test, y_train, y_test
 
 
-def create_model(phenotype_chromosome, maxlen=200, vocab_size=2000):
+def create_model(phenotype_chromosome, maxlen=200, vocab_size=20000):
     d_model = phenotype_chromosome[0]
 
     attention_layer_configs1 = phenotype_chromosome[1]
@@ -148,9 +148,44 @@ def create_model(phenotype_chromosome, maxlen=200, vocab_size=2000):
 
     return model
 
-def start_training(phenotype_chromosome):
+def fitness_evaluate(phenotype_chromosome, eval_count=5):
+    """
+    train the model and evaluate the architecture using test values
 
-    model = create_model(phenotype_chromosome)
-    x_train, x_test, y_train, y_test = load_data()
+    Parameters:
+    -------------
+    phenotype_chromosome : tuple
+        representing the network architecture
+    eval_count : int
+        the count of evaluations for a network architecture
+        default is 5 
 
-    model.fit(x_train, y_train, batch_size=64, epochs=5)
+    Returns:
+    ---------
+    average_acc : float
+        a floating value representing the fitness of the chromsome
+    """
+
+    acc_arr = []
+    for _ in range(eval_count):
+        model = create_model(phenotype_chromosome)
+        x_train, x_test, y_train, y_test = load_data()
+
+        _ = model.fit(x_train, y_train, batch_size=64, epochs=5)
+
+        res, _ = model.evaluate(x_test, y_test)
+
+        acc_arr.append(res)
+    
+    average_acc = np.mean(acc_arr)
+    
+    save_chromosome_with_fitness(phenotype_chromosome, average_acc)
+    
+    return average_acc
+
+def save_chromosome_with_fitness(chromosome, fitness, file_name='results.txt'):
+
+    with open(file_name, mode='a') as file:
+        chromsome_str = str(chromosome)
+        file.write(f'\n{chromsome_str}: {fitness}')
+

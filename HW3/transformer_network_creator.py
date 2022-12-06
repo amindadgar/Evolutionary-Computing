@@ -121,13 +121,13 @@ def create_model(genotype_chromosome, maxlen=200, vocab_size=20000):
     ## the the first attention layer was available to use
     ## if it was not available then all the tuple will be None, so no need to check all tuples
     ## that's why we checked the index=0
-    if attention_layer_configs1[0][0] is not None:
+    if (attention_layer_configs1[0][0] is not None) and (attention_layer_configs1[0][1] is not None) and ((attention_layer_configs1[0][2] is not None)) and (attention_layer_configs1[0][3] is not None):
         transformer_block1 = TransformerBlock(d_model, attention_layer_configs1[2], attention_layer_configs1[0], attention_layer_configs1[1])
         x = transformer_block1(x)
-    if attention_layer_configs2[0][0] is not None:
+    if (attention_layer_configs2[0][0] is not None) and (attention_layer_configs2[0][1] is not None) and (attention_layer_configs2[0][2] is not None) and (attention_layer_configs2[0][3] is not None):
         transformer_block2 = TransformerBlock(d_model, attention_layer_configs2[2], attention_layer_configs2[0], attention_layer_configs2[1])
         x = transformer_block2(x)
-    if attention_layer_configs3[0][0] is not None:
+    if (attention_layer_configs3[0][0] is not None) and (attention_layer_configs3[0][1] is not None) and (attention_layer_configs3[0][2] is not None) and (attention_layer_configs3[0][3] is not None):
         transformer_block3 = TransformerBlock(d_model, attention_layer_configs3[2], attention_layer_configs3[0], attention_layer_configs3[1])
         x = transformer_block3(x)
 
@@ -140,9 +140,10 @@ def create_model(genotype_chromosome, maxlen=200, vocab_size=20000):
     
     FFN_neuron_count = FFN_layer_configs[0]
     FFN_dropout_probability = FFN_layer_configs[2]
+    if FFN_neuron_count is not None:
+        x = Dense(FFN_neuron_count, activation=FFN_activation_function)(x)
+        x = Dropout(FFN_dropout_probability)(x)
     
-    x = Dense(FFN_neuron_count, activation=FFN_activation_function)(x)
-    x = Dropout(FFN_dropout_probability)(x)
     outputs = Dense(2, activation="softmax")(x)
 
     model = Model(inputs=inputs, outputs=outputs)

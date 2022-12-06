@@ -6,6 +6,7 @@ from tensorflow.keras.datasets import imdb
 from tensorflow.keras.models import Sequential, Model
 import numpy as np
 import warnings
+from util import convert_genotype_to_phenotype_values
 warnings.filterwarnings("ignore", category=np.VisibleDeprecationWarning)
 
 class TransformerBlock(Layer):
@@ -100,7 +101,9 @@ def load_data():
     return x_train, x_test, y_train, y_test
 
 
-def create_model(phenotype_chromosome, maxlen=200, vocab_size=20000):
+def create_model(genotype_chromosome, maxlen=200, vocab_size=20000):
+    phenotype_chromosome = convert_genotype_to_phenotype_values(genotype_chromosome)
+
     d_model = phenotype_chromosome[0]
 
     attention_layer_configs1 = phenotype_chromosome[1]
@@ -117,14 +120,14 @@ def create_model(phenotype_chromosome, maxlen=200, vocab_size=20000):
     
     ## the the first attention layer was available to use
     ## if it was not available then all the tuple will be None, so no need to check all tuples
-    ## that's why we checked the index=2
-    if attention_layer_configs1[2] is not None:
+    ## that's why we checked the index=0
+    if attention_layer_configs1[0][0] is not None:
         transformer_block1 = TransformerBlock(d_model, attention_layer_configs1[2], attention_layer_configs1[0], attention_layer_configs1[1])
         x = transformer_block1(x)
-    if attention_layer_configs2[2] is not None:
+    if attention_layer_configs2[0][0] is not None:
         transformer_block2 = TransformerBlock(d_model, attention_layer_configs2[2], attention_layer_configs2[0], attention_layer_configs2[1])
         x = transformer_block2(x)
-    if attention_layer_configs3[2] is not None:
+    if attention_layer_configs3[0][0] is not None:
         transformer_block3 = TransformerBlock(d_model, attention_layer_configs3[2], attention_layer_configs3[0], attention_layer_configs3[1])
         x = transformer_block3(x)
 
@@ -148,7 +151,7 @@ def create_model(phenotype_chromosome, maxlen=200, vocab_size=20000):
 
     return model
 
-def fitness_evaluate(phenotype_chromosome, eval_count=5):
+def fitness_evaluate(phenotype_chromosome, results_file_name, eval_count=5):
     """
     train the model and evaluate the architecture using test values
 
@@ -171,7 +174,7 @@ def fitness_evaluate(phenotype_chromosome, eval_count=5):
         model = create_model(phenotype_chromosome)
         x_train, x_test, y_train, y_test = load_data()
 
-        _ = model.fit(x_train, y_train, batch_size=64, epochs=5)
+        _ = model.fit(x_train, y_train, batch_size=64, epochs=5, verbose=2)
 
         res, _ = model.evaluate(x_test, y_test)
 
@@ -179,7 +182,8 @@ def fitness_evaluate(phenotype_chromosome, eval_count=5):
     
     average_acc = np.mean(acc_arr)
     
-    save_chromosome_with_fitness(phenotype_chromosome, average_acc)
+    if results_file_name is not None:
+        save_chromosome_with_fitness(phenotype_chromosome, acc_arr, results_file_name)
     
     return average_acc
 

@@ -23,7 +23,7 @@ class TransformerBlock(Layer):
     def __create_feed_forward(self, d_model, feed_forward_configs):
 
         ## if the layer was available
-        if feed_forward_configs is not None:
+        if (feed_forward_configs[0] is not None) and (feed_forward_configs[1] is not None) and (feed_forward_configs[2] is not None):
 
             ## extracting the information
             dense_layer_neuron_count = feed_forward_configs[0]
@@ -34,15 +34,19 @@ class TransformerBlock(Layer):
 
             dropout_rate = feed_forward_configs[2]
 
-            created_model = Sequential()
-            created_model.add(Dense(dense_layer_neuron_count, activation=activation_function))
-            created_model.add(Dropout(dropout_rate))
-            created_model.add(Dense(d_model))
+            try:
+                created_model = Sequential()
+                created_model.add(Dense(dense_layer_neuron_count, activation=activation_function))
+                created_model.add(Dropout(dropout_rate))
+                created_model.add(Dense(d_model))
+            except ValueError:
+                raise ValueError(f"Chromosome feed_forward_config:, {feed_forward_configs}")
 
             ## if layer normalization parameter was true
             layernorm = feed_forward_configs[3]
         else:
             created_model = None
+            layernorm = False
         
         
         return created_model, layernorm
@@ -131,7 +135,7 @@ def create_model(genotype_chromosome, maxlen=200, vocab_size=20000):
         transformer_block3 = TransformerBlock(d_model, attention_layer_configs3[2], attention_layer_configs3[0], attention_layer_configs3[1])
         x = transformer_block3(x)
 
-    x = GlobalAveragePooling1D()(x)   # dont edit this line
+    x = GlobalAveragePooling1D()(x)
 
     if FFN_layer_configs[1] == 'R':
         FFN_activation_function = 'relu'
@@ -152,41 +156,43 @@ def create_model(genotype_chromosome, maxlen=200, vocab_size=20000):
 
     return model
 
-def fitness_evaluate(phenotype_chromosome, results_file_name, eval_count=5):
+def fitness_evaluate(genotype_chromosome, results_file_name, eval_count=5):
     """
     train the model and evaluate the architecture using test values
 
     Parameters:
     -------------
-    phenotype_chromosome : tuple
-        representing the network architecture
+    genotype_chromosome : string
+        string of integers representing the network architecture
+    results_file_name : string
+        the name of the file to save the chromosome with its fitness
     eval_count : int
         the count of evaluations for a network architecture
         default is 5 
 
     Returns:
     ---------
-    average_acc : float
+    loss_acc : float
         a floating value representing the fitness of the chromsome
     """
 
-    acc_arr = []
+    loss_arr = []
     for _ in range(eval_count):
-        model = create_model(phenotype_chromosome)
+        model = create_model(genotype_chromosome)
         x_train, x_test, y_train, y_test = load_data()
 
         _ = model.fit(x_train, y_train, batch_size=64, epochs=5, verbose=2)
 
         res, _ = model.evaluate(x_test, y_test)
 
-        acc_arr.append(res)
+        loss_arr.append(res)
     
-    average_acc = np.mean(acc_arr)
+    average_loss = np.mean(loss_arr)
     
     if results_file_name is not None:
-        save_chromosome_with_fitness(phenotype_chromosome, acc_arr, results_file_name)
+        save_chromosome_with_fitness(phenotype_chromosome, loss_arr, results_file_name)
     
-    return average_acc
+    return average_loss
 
 # def save_chromosome_with_fitness(chromosome, fitness, file_name='results.txt'):
 def save_chromosome_with_fitness(chromosome, fitness, file_name='/content/gdrive/EC Project/result.txt'):

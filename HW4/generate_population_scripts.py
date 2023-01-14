@@ -299,14 +299,6 @@ def process_division_points(vehicle_chromosome, depot_symbol_arr, vehicle_depot_
         depot_symbol = find_depot_using(processed_vehicle_chromsome, depot_symbol_arr)
 
         division_counts = vehicle_chromosome.count('|')
-
-        # for idx in range(division_counts):
-        #     occurance = -1
-        #     occurance_idx = 0
-        #     while occurance < idx:
-        #         occurance_idx = processed_vehicle_chromsome.find('|', occurance_idx) + 1
-        #         occurance += 1
-            # processed_vehicle_chromsome = processed_vehicle_chromsome[:occurance_idx] + depot_symbol + processed_vehicle_chromsome[occurance_idx:]
         
         occurance = 0
         occurance_idx = 0
@@ -502,7 +494,16 @@ def find_distance_penalty(chromosome, DEPOT_LOCATION, dataset, max_distance_limi
     return distance_over
 
 
-def generate_population(max_capacity, dataset, fitness_functions, depot_location_dict, pop_count = 10, vehicle_count=6, max_distance=None, vehicle_depot_constraint=True, all_customers=True):
+def generate_population(max_capacity, 
+                        dataset, 
+                        fitness_functions, 
+                        depot_location_dict, 
+                        pop_count = 10, 
+                        vehicle_count=6, 
+                        max_distance=None, 
+                        vehicle_depot_constraint=True, 
+                        all_customers=True,
+                        multi_objective_handler = 'coeff'):
     """
     generate the population of the problem
 
@@ -529,6 +530,9 @@ def generate_population(max_capacity, dataset, fitness_functions, depot_location
     vehicle_depot_constraint : bool
         the constraint for belonging each vehicle to one depot
         default is True, meaning the vehicle does always belong to one depot! (can not go to another depot)
+    multi_objective_handler : string
+        the handler for showing which type of method is used for multi-objective algorithm
+        can be 'coeff' or 'pareto', default is 'coeff'
 
     Returns:
     ----------
@@ -568,8 +572,11 @@ def generate_population(max_capacity, dataset, fitness_functions, depot_location
             chromsome_fitness = fitness_functions(processed_vehicle_chromsome, depot_location, dataset)
         ## else we had multiple fitness functions
         else:
-            chromsome_fitness = multi_objective_fitness_coeff(fitness_functions, processed_vehicle_chromsome, depot_location, dataset)
-
+            if multi_objective_handler == 'coeff':
+                chromsome_fitness = multi_objective_fitness_coeff(fitness_functions, processed_vehicle_chromsome, depot_location, dataset)
+            else:
+                chromsome_fitness = multi_objective_fitness(fitness_functions, processed_vehicle_chromsome, depot_location, dataset)
+                
         fitness_arr.append(chromsome_fitness)
         
     return population_arr, fitness_arr
@@ -597,8 +604,24 @@ def multi_objective_fitness_coeff(fitness_functions_arr, chromosome, depot_locat
     
     return fitness_value
 
-def multi_objective_pareto_NSGA_II(fitness_functions_arr, chromosome, depot_location, dataset):
-    raise NotImplemented
+def multi_objective_fitness(fitness_functions_arr, chromosome, depot_location, dataset):
+    """
+    Multi-objective fitness values 
+    the returned fitness is an array of fitness values representing each fitness function
+    """
+    ## save it to normalise after using the other evaluation function for multiple time
+    ## then bring the value back to its original
+    global EVALUATION_COUNT
+    eval_count = EVALUATION_COUNT  + 1
+
+    fitness_arr = []
+    for fitness_function in fitness_functions_arr:
+        fitness = fitness_function(chromosome, depot_location, dataset)
+        fitness_arr.append(fitness)
+
+    EVALUATION_COUNT = eval_count
+
+    return fitness_arr    
 
 
 def get_evalution_count():

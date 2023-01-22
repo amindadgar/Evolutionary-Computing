@@ -41,9 +41,13 @@ def generate_vehicles_chromosomes(dataset, MAX_CAPACITY, depot_location_dict ,MA
     gene = depot_symbol
     capacity = 0
     distance = 0    
+    if all_customers:
+        random_value = 0
+    else:
+        random_value = random.randint(10, 80)
 
     chromsome_generation_loop_count = 0
-    while len(arr) > 0:
+    while len(arr) - random_value > 0:
         chromsome_generation_loop_count += 1
 
         customer_number = sampling_function(arr, without_replacement=False)
@@ -98,15 +102,17 @@ def generate_vehicles_chromosomes(dataset, MAX_CAPACITY, depot_location_dict ,MA
             depot_symbol = random.choice(list(depot_location_dict.keys()))
             depot_location = depot_location_dict[depot_symbol]
                 
-        ## if it couldn't make the chromsome by serving all cusomers
-        ## then just deny the available constraint and add it
-        ## is not probable to happen always
-        if (chromsome_generation_loop_count > max_customer_number * 25):
+        ## if the loop continued for a long time
+        if (chromsome_generation_loop_count > max_customer_number * 10):
+            ## if it couldn't make the chromsome by serving all cusomers
+            ## then just deny the available constraint and add it
+            ## is not probable to happen always
             if all_customers:
                 if customer_number in arr:
                     last_X, last_Y = data.x.values[0], data.y.values[0]
                     gene += str(data.number.values[0] + 100) 
                     arr.remove(customer_number)
+            ## else just break the loop
             else:
                 break
         
@@ -323,22 +329,22 @@ def process_division_points(vehicle_chromosome, depot_symbol_arr, vehicle_depot_
     return processed_vehicle_chromsome
 
 
-def evaluate_distance_fitness(chromsome, DEPOT_LOCATION, dataset):
+def evaluate_distance_fitness(chromsome, DEPOT_LOCATION, dataset, normalize=True):
     """
     evaluate the distance gone for a chromsome containing different vehicle with the splitter symbol `|`
-    the returned value is normalized to 1
+    the returned value is normalized to 1 
     """
     global EVALUATION_COUNT
     EVALUATION_COUNT += 1
 
     global MAX_DISTANCE_POSSIBLE
-    if MAX_DISTANCE_POSSIBLE is None:
+    if MAX_DISTANCE_POSSIBLE is None and normalize:
         MAX_DISTANCE_POSSIBLE = find_max_distance_available(dataset, DEPOT_LOCATION)
     
     depot_x_loc, depot_y_loc = DEPOT_LOCATION
 
-    distance = 0
-
+    distance = 0 
+    
     for ch in re.split('\(\d+\)', chromsome):
         if ch and ch != '|':
             ## start is always from a depot
@@ -360,8 +366,13 @@ def evaluate_distance_fitness(chromsome, DEPOT_LOCATION, dataset):
             ## end is always the depot
             distance += abs(last_loc_X - depot_x_loc) + abs(last_loc_Y - depot_y_loc)
     
-    ## normalizing
-    distance = distance / MAX_DISTANCE_POSSIBLE
+    if normalize:
+        ## normalizing
+        if distance > MAX_DISTANCE_POSSIBLE:
+            raise ValueError("distance cannot be bigger than max distance possible!")
+        distance = distance / MAX_DISTANCE_POSSIBLE
+        distance *= 100
+
     
     return distance
 
@@ -379,12 +390,12 @@ def find_max_distance_available(dataset, depot_loc ,distance_metric='manhatan'):
     else:
         raise NotImplementedError
     
-    return max_distance
+    return max_distance * 10
 
-def evaluate_fitness_customers_count(chromosome, DEPOT_LOCATION, dataset):
+def evaluate_fitness_customers_count(chromosome, DEPOT_LOCATION, dataset, normalize=True):
     """
     evaluate the fitness based on the count of customers served
-    we want to maximize the customers count, instead we minimize the 1 divided by the customers count
+    we want to maximize the customers count, instead we minimize the 1 divided by the customers count but if normalize wasn't requested then do not divide
     (to make the fewer changes in code, we made it a mimization problem as the distance based fitness)
 
     two inputs `DEPOT_LOCATION` and `dataset` are not used, we just added it to make it like the other fitness functions 
@@ -402,22 +413,29 @@ def evaluate_fitness_customers_count(chromosome, DEPOT_LOCATION, dataset):
     for vehicle in vehicles_arr:
         ## find all the paths for served customers from depot to depot
         path_arr = re.split('\(\d+\)', vehicle)
-        # path_arr = vehicle.split(depot_symbol)
+        
         ## find the longest path
-        longest_path = max(path_arr, key=len)
-        ## the count of customers served in the longest path
-        customers_seved += len(longest_path) / 3
+        # longest_path = max(path_arr, key=len)
+        for path in path_arr:
+            ## the count of customers served in the longest path
+            customers_seved += len(path) / 3
 
-    fitness = 1 / customers_seved
+    ## if original customers was not requested
+    if normalize:
+        fitness = 1 / customers_seved
+        ## to resolve the floating point issues
+        # fitness = fitness * 100
+    else:
+        fitness = customers_seved
 
     return fitness
 
 
 
-def evaluate_fitness_customers_served_demands(chromosome, DEPOT_LOCATION, dataset):
+def evaluate_fitness_customers_served_demands(chromosome, DEPOT_LOCATION, dataset, normalize=True):
     """
     evaluate the fitness based on the count of customers' need served
-    we want to maximize the customers served demands, instead we minimize it by dividing 1 with the value
+    we want to maximize the customers served demands, instead we minimize it by dividing 1 with the value but if normalize was requested then do not divide
     (to make the fewer changes in code, we made it a mimization problem as the distance based fitness)
 
     two inputs `DEPOT_LOCATION` and are not used, we just added it to make it like the other fitness functions 
@@ -441,7 +459,12 @@ def evaluate_fitness_customers_served_demands(chromosome, DEPOT_LOCATION, datase
         customer_demand = cusomter.demand.values[0]
         demands_served += customer_demand
 
-    fitness = 1 / demands_served
+    if normalize:
+        fitness = 1 / demands_served
+        ## to resolve the floating point issues
+        # fitness = fitness * 100
+    else:
+        fitness = demands_served
 
     return fitness
 
@@ -493,6 +516,14 @@ def find_distance_penalty(chromosome, DEPOT_LOCATION, dataset, max_distance_limi
     
     return distance_over
 
+def fitness_sharing(fitness):
+    """
+    update the fitness values using fitness sharing method
+    this is a variety preservation method for EC algorithms
+    """
+    raise NotImplementedError
+
+
 
 def generate_population(max_capacity, 
                         dataset, 
@@ -527,6 +558,7 @@ def generate_population(max_capacity,
     fitness_functions : function
         the function for evaluating the chromsomes
         if a list, then the problem is multi-objective, else it is single objective
+        can be None, meaning there is no need for fitness values
     vehicle_depot_constraint : bool
         the constraint for belonging each vehicle to one depot
         default is True, meaning the vehicle does always belong to one depot! (can not go to another depot)
@@ -568,15 +600,18 @@ def generate_population(max_capacity,
 
         ## fitness evaluations
         ## if there was a single fitness function
-        if type(fitness_functions) is not list:
+        if type(fitness_functions) is not list and fitness_functions is not None:
             chromsome_fitness = fitness_functions(processed_vehicle_chromsome, depot_location, dataset)
         ## else we had multiple fitness functions
-        else:
+        elif fitness_functions is not None:
             if multi_objective_handler == 'coeff':
                 chromsome_fitness = multi_objective_fitness_coeff(fitness_functions, processed_vehicle_chromsome, depot_location, dataset)
             else:
                 chromsome_fitness = multi_objective_fitness(fitness_functions, processed_vehicle_chromsome, depot_location, dataset)
-                
+        else:
+            ## if no fitness function was given
+            ## meaning no evaluation needed 
+            chromsome_fitness = None
         fitness_arr.append(chromsome_fitness)
         
     return population_arr, fitness_arr

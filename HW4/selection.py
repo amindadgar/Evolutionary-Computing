@@ -1,4 +1,4 @@
-from numpy import random, where, array, ones
+from numpy import random, where, array, ones, sum
 """
 Selection methods 
 """
@@ -30,7 +30,7 @@ def roulette_wheel(population, pop_fitness, selection_pop_size=2, with_replaceme
     """
     if sum(pop_fitness) != 0:
         # find the probability of selection of each gene in population
-        population_probability = array(pop_fitness) / sum(pop_fitness)
+        population_probability = sum(array(pop_fitness) / sum(pop_fitness), axis=1)
     else:
         ## if all the population fitness was zero, then apply probabilities uniformly
         population_probability = ones(len(pop_fitness)) / len(pop_fitness)

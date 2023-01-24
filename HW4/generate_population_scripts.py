@@ -508,7 +508,7 @@ def find_distance_penalty(chromosome, DEPOT_LOCATION, dataset, max_distance_limi
     distance_over = 0
     ## the distance for each vehicle
     for chromsome_vehicle in chromosome.split('|'):
-        distance_gone = evaluate_distance_fitness(chromsome_vehicle, DEPOT_LOCATION, dataset)
+        distance_gone = evaluate_distance_fitness(chromsome_vehicle, DEPOT_LOCATION, dataset, normalize=False)
         
         ## sum the more distances over the limit
         if distance_gone > max_distance_limit:

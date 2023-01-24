@@ -26,6 +26,9 @@ from pymoo.core.sampling import Sampling
 from pymoo.core.problem import ElementwiseProblem
 from generate_population_scripts import find_depot_using
 from pymoo.algorithms.moo.nsga2 import NSGA2
+from pymoo.core.callback import Callback
+from pymoo.util.ref_dirs import get_reference_directions
+from pymoo.algorithms.moo.moead import MOEAD
 import sys
 
 
@@ -58,14 +61,16 @@ class MyProblem(ElementwiseProblem):
     def _evaluate(self, x, out, *args, **kwargs):
 
         depot_symbol = find_depot_using(x[0], ['(1)', '(2)', '(3)'])
-        f1 = evaluate_distance_fitness(x[0], self.depot_location_dict[depot_symbol], self.dataset)
-        f2 = evaluate_fitness_customers_count(x[0], self.depot_location_dict[depot_symbol], self.dataset)
+        # f1 = evaluate_distance_fitness(x[0], self.depot_location_dict[depot_symbol], self.dataset)
+        # f2 = evaluate_fitness_customers_count(x[0], self.depot_location_dict[depot_symbol], self.dataset)
+        f1 = self.fitness_functions[0](x[0], self.depot_location_dict[depot_symbol], self.dataset)
+        f2 = self.fitness_functions[1](x[0], self.depot_location_dict[depot_symbol], self.dataset)
 
         out["F"] = [f1, f2]
 
 
 
-class problem1_sampling(Sampling):
+class mySampling(Sampling):
 
     def _do(self, problem, n_samples,**kwargs):
 
@@ -85,7 +90,7 @@ class problem1_sampling(Sampling):
 
         return X
 
-class problem1_crossover(Crossover):
+class myCrossover(Crossover):
     def __init__(self):
 
         # define the crossover: number of parents and number of offsprings
@@ -110,7 +115,7 @@ class problem1_crossover(Crossover):
 
         return Y
 
-class problem1_mutation(Mutation):
+class myMutation(Mutation):
     def __init__(self):
         super().__init__()
         self.prob = 0.2
@@ -133,17 +138,41 @@ class problem1_mutation(Mutation):
 
         return Y
 
-class problem1_duplicateElimination(ElementwiseDuplicateElimination):
+class myDuplicateElimination(ElementwiseDuplicateElimination):
 
     def is_equal(self, a, b):
         return a.X[0] == b.X[0]
 
+class MyCallback(Callback):
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.data["hv"] = []
+        self.data["n_evals"] = []
+        self.data['opt'] = []
+
+    def notify(self, algorithm):
+        ## for computing hypervolume
+        points = algorithm.pop.get("F")
+        worst_point = np.array([12, 1])
+        hv = self._calculate_hypervolume(points=points, reference_point=worst_point) 
+        self.data["hv"].append(hv)
+        ## for computing convergence we need these data
+        self.data['n_evals'].append(algorithm.evaluator.n_eval)
+        self.data['opt'].append(algorithm.opt[0].F)
+
+    def _calculate_hypervolume(self, points, reference_point):
+        """
+        calculate hypervolume based on the reference point
+        """
+        hv = sum(np.abs(points - reference_point)[:, 0] * np.abs(points - reference_point)[:, 1])
+        return hv
 
 
 if __name__ == '__main__':
 
-    if len(sys.argv) > 3 or len(sys.argv) < 3:
-        raise ValueError(f"One arguments expected, got {len(sys.argv) - 1}")
+    if len(sys.argv) > 4 or len(sys.argv) < 4:
+        raise ValueError(f"Three arguments expected, got {len(sys.argv) - 1}")
     
     
     dataset_location = sys.argv[1]
@@ -155,8 +184,13 @@ if __name__ == '__main__':
     ## problem_no=1
     problem_no = int(sys.argv[2].split('=')[1])
 
+    ## example for the third argument
+    ## method=nsga2
+    method = sys.argv[3].split('=')[1]
+
     p1_data = pd.read_csv(dataset_location, delimiter=' ')
 
+    ## depot location selection
     if problem_no == 1 or problem_no == 2:
         DEPOT_LOCATIONS_dict = {
                 '(1)': (31, 6),
@@ -164,7 +198,7 @@ if __name__ == '__main__':
                 '(3)': (25, -10)
         }   
     elif problem_no == 3:
-                DEPOT_LOCATIONS_dict = {
+        DEPOT_LOCATIONS_dict = {
                 '(1)': (40, 23),
                 '(2)': (0, 0),
                 '(3)': (-18, -27)
@@ -172,36 +206,90 @@ if __name__ == '__main__':
     else:
         raise ValueError(f"Wrong problem number entered: {problem_no}")
 
-    algorithm = NSGA2(
-        pop_size=50,
-        sampling=problem1_sampling(),
-        crossover=problem1_crossover(),
-        mutation=problem1_mutation(),
-        eliminate_duplicates=problem1_duplicateElimination()
-    )
+    ## problems configurations
+    ## initialization
+    max_capacity = None
+    max_distance = None
+    vehicle_count = None
+    
+    ## setting values to configuration
+    if problem_no == 1:
+        Fitness_functions_arr = [evaluate_distance_fitness, evaluate_fitness_customers_count]
+        vehicle_count = 5 - 1
+        max_capacity = 100
+        max_distance = None
+    elif problem_no == 2:
+        Fitness_functions_arr = [evaluate_distance_fitness, evaluate_fitness_customers_served_demands]
+        vehicle_count = 5 - 1
+        max_capacity = 100
+        max_distance = None
+    else:
+        vehicle_count = None
+        max_distance = 200
+        Fitness_functions_arr = [evaluate_fitness_vehicle_count, evaluate_fitness_customers_served_demands]
+
+    ## initialization of the algorithm
+    algorithm = None
+    if method == 'nsga':
+        print('NSGA2 algorithm is running!')
+        algorithm = NSGA2(
+            pop_size=50,
+            sampling=mySampling(),
+            crossover=myCrossover(),
+            mutation=myMutation(),
+            eliminate_duplicates=myDuplicateElimination()
+        )
+    else:
+        print('MOEAD algorithm is running!')
+        ref_dir = get_reference_directions('uniform', 2, n_partitions=10)
+        algorithm = MOEAD(
+            ref_dirs=ref_dir,
+            n_neighbors=15,
+            prob_neighbor_mating=0.7,
+            sampling=mySampling(),
+            crossover=myCrossover(),
+            mutation=myMutation()
+        )
 
     # termination = get_termination("n_gen", 10)
     termination = get_termination("n_eval", 5000)
 
-    problem = MyProblem(max_capacity=100,
+    problem = MyProblem(max_capacity=max_capacity,
                         dataset=p1_data, 
-                        fitness_functions=[evaluate_distance_fitness, evaluate_fitness_customers_count],
+                        fitness_functions= Fitness_functions_arr,
                         depot_location_dict=DEPOT_LOCATIONS_dict,
                         pop_count=50,
-                        vehicle_count=4,
-                        max_distance=None,
+                        vehicle_count=vehicle_count,
+                        max_distance=max_distance,
                         all_customers=False,
                         vehicle_depot_constraint=True)
+
+    callback = MyCallback()
 
     res = minimize(problem,
                algorithm,
                termination,
-               seed=1,
-               save_history=True,
-               verbose=True)
+               seed=2,
+               callback=callback,
+               save_history=False,
+               verbose=True )
 
     X = res.X
     F = res.F
 
-    # print('res.X: \n',X)
-    print('res.F: \n',F)
+    ## hypervolume
+    hv = callback.data['hv']
+    ## number of evaluations
+    n_evals = callback.data['n_evals']
+    ## optimum points 
+    opt_points = callback.data['opt'] 
+
+
+    ## saving the results
+    np.savetxt(os.path.join('results', f'pymoo_results_problem{problem_no}_method={method}_population.csv'), X, delimiter=',', fmt='%s')
+    np.savetxt(os.path.join('results', f'pymoo_results_problem{problem_no}_method={method}_fitness.csv'), F, delimiter=',',fmt='%s')
+    np.savetxt(os.path.join('results', f'pymoo_results_problem{problem_no}_method={method}_hv.csv'), hv, delimiter=',',fmt='%s')
+    np.savetxt(os.path.join('results', f'pymoo_results_problem{problem_no}_method={method}_nevals.csv'), n_evals, delimiter=',',fmt='%s')
+    np.savetxt(os.path.join('results', f'pymoo_results_problem{problem_no}_method={method}_opts.csv'), opt_points, delimiter=',',fmt='%s')
+
+
